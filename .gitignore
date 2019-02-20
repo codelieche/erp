@@ -1,0 +1,11 @@
+.DS_modules
+.DS_Store
+
+.idea
+.vscode
+.python-version
+__pycache__
+
+tmp/
+*.css.map
+
