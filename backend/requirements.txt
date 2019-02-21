@@ -17,6 +17,7 @@ MarkupSafe==1.1.0
 mysqlclient==1.4.2.post1
 openpyxl==2.6.0
 Pillow==5.4.1
+pycrypto==2.6.1
 pytz==2018.9
 requests==2.21.0
 uritemplate==3.0.0
