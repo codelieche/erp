@@ -8,6 +8,8 @@ ogranization：组织的Model
 """
 from django.db import models
 
+from account.models import User
+
 
 class Category(models.Model):
     """
@@ -117,4 +119,20 @@ class Team(models.Model):
 
     class Meta:
         verbose_name = "团队"
+        verbose_name_plural = verbose_name
+
+
+class Member(models.Model):
+    """
+    成员
+    """
+    team = models.ForeignKey(to="Team", verbose_name="团体")
+    role = models.ForeignKey(to="Role", verbose_name="角色")
+    users = models.ManyToManyField(to=User, verbose_name="用户")
+
+    def __str__(self):
+        return "{}-{}:成员".format(self.team.name, self.role.name)
+
+    class Meta:
+        verbose_name = "成员"
         verbose_name_plural = verbose_name
