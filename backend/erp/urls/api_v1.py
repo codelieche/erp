@@ -5,6 +5,8 @@ urlpatterns = [
     # 前缀：/api/v1/
     # account api
     path('account/', include(arg=("account.urls.api", "account"), namespace="account")),
+    # organization api
+    path('organization/', include(arg=("organization.urls.api", "account"), namespace="organization")),
 
     # Model日志相关的api
     path('modellog/', include(arg=('modellog.urls', 'modellog'), namespace='modellog')),
