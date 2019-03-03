@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     'corsheaders',
     # 自定义app
     "account",
+    "organization",
     "modellog",
     "utils",
 ]
