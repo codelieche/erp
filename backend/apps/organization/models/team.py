@@ -66,6 +66,13 @@ class Role(models.Model):
     def __str__(self):
         return "角色:{}({})".format(self.name, self.code)
 
+    @property
+    def subs(self):
+        if self.role_set.count() > 0:
+            return self.role_set.all()
+        else:
+            return []
+
     def save(self, force_insert=False, force_update=False, using=None,
              update_fields=None):
         # 1. 计算level
