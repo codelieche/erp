@@ -1,7 +1,7 @@
 """erp URL Configuration
 
 The `urlpatterns` list routes URLs to views. For more information please see:
-    https://docs.djangoproject.com/en/2.1/topics/http/urls/
+    https://docs.djangoproject.com/en/3.2/topics/http/urls/
 Examples:
 Function views
     1. Add an import:  from my_app import views
@@ -14,21 +14,18 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.urls import path, include
-from django.conf import settings
-from django.conf.urls.static import static
-from rest_framework.documentation import include_docs_urls
+from django.urls import path, re_path, include
 
+from erp.views.index import index_page
+from erp.views.setup import ProjectSetupView
 
 urlpatterns = [
-    path('', include(arg=('erp.urls.pages', 'erp'), namespace="pages")),
     path('admin/', admin.site.urls),
-
+    # 初始化
+    path('api/v1/setup', ProjectSetupView.as_view(), name="setup"),
     # api v1 url
-    path('api/v1/', include(arg=('erp.urls.api_v1', 'erp'), namespace="api")),
+    path('api/v1/', include(arg=("erp.urls.api_v1", "erp"), namespace="api")),
 
-    # Django Rest Framework自动api文档，正式环境会取消
-    path('docs/', include_docs_urls(title="Simple ERP API文档")),
-
-    # 加入media路由配置，生成环境不会用这个来获取静态文件，会用nginx
-] + static(settings.MEDIA_DIR, document_root=settings.MEDIA_ROOT)
+    # 排除media、static、api、admin四个开头的，其它页面调用react的页面
+    re_path(r'^(?!media|api|static|admin)[a-z]?', index_page),
+]

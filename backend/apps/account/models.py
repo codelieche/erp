@@ -2,38 +2,35 @@ from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.contrib.auth import get_user_model
 
-from utils.tools.password import random_password
-
 # Create your models here.
 
 
 class UserProfile(AbstractUser):
     """
     自定义的用户Model
-    拓展字段gender，nick_name, mobile， qq， wechart，dingding
+    拓展字段gender, nick_name, mobile, qq
     """
+
     GENDER_CHOICES = (
-        ("male", "男"),
-        ("female", "女"),
-        ("secret", "保密"),
+        ('male', "男"),
+        ('female', "女"),
+        ('secret', "保密")
     )
+
     nick_name = models.CharField(max_length=40, blank=True, verbose_name="昵称")
-    gender = models.CharField(max_length=6, choices=GENDER_CHOICES, default="secret", verbose_name="性别")
-
+    # 头像url
+    avatar = models.CharField(verbose_name="头像", blank=True, null=True, max_length=256)
+    gender = models.CharField(max_length=6, choices=GENDER_CHOICES, default="secret",
+                              verbose_name="性别")
+    # email可以随便填，但是手机号需要唯一: 后续可加入校验验证码
     mobile = models.CharField(max_length=11, verbose_name="手机号", unique=True)
-    id_card = models.CharField(max_length=18, verbose_name="身份证ID", blank=True, null=True)
-    qq = models.CharField(max_length=40, verbose_name="QQ", blank=True, null=True)
-    wechart = models.CharField(max_length=40, verbose_name="微信ID", blank=True, null=True)
+    qq = models.CharField(max_length=12, verbose_name="QQ号", blank=True, null=True)
+    # 公司有时候会用到钉钉/微信发送消息，需要记录用户相关ID
     dingding = models.CharField(max_length=40, verbose_name="钉钉ID", blank=True, null=True)
-    # 当需要推广用户的时候，需要用到ucode字段
-    ucode = models.CharField(max_length=40, verbose_name="推广码", blank=True, unique=True)
-    # 用户B注册的时候点了用户A的推广链接，那么B的parent就是A用户
-    parent = models.ForeignKey(to="self", on_delete=models.SET_NULL, blank=True, null=True, verbose_name="推广者")
-    # 用户注册的时候默认是1级别的， 比如A是1级别的，A推广了B，B又推广了C，那么c的level是3
-    level = models.SmallIntegerField(verbose_name="级别", blank=True, default=1)
-    # 能否访问本系统，默认是不可以访问本系统，第一个管理员用户，可以去数据库调整can_view的值为1
+    wechart = models.CharField(max_length=40, verbose_name="微信ID", blank=True, null=True)
+    # 能否访问本系统，默认是不可以访问本系统
+    # 注意第一个管理员用户，可以去数据库调整can_view的值为1
     can_view = models.BooleanField(verbose_name="能访问", default=False, blank=True)
-
     is_deleted = models.BooleanField(verbose_name="删除", default=False, blank=True)
 
     def __repr__(self):
@@ -41,22 +38,6 @@ class UserProfile(AbstractUser):
 
     def __str__(self):
         return self.username
-
-    def save(self, *args, **kwargs):
-        level = 1
-        parent = self.parent
-        while parent:
-            level += 1
-            parent = parent.parent
-        self.level = level
-
-        # 如果ucode为空，就随机生成一个
-        if not self.ucode:
-            ucode = random_password(10)
-            while User.objects.filter(ucode=ucode).count() > 0:
-                ucode = random_password(10)
-            self.ucode = ucode
-        super().save(*args, **kwargs)
 
     class Meta:
         verbose_name = "用户信息"
@@ -71,23 +52,25 @@ User = get_user_model()
 # 注意这句是要放在class UserProfile后面的
 
 
-class MessageCategory(models.Model):
+class MessageScope(models.Model):
     """
-    消息类型
+    消息范围
     """
-    category = models.SlugField(verbose_name="类型", max_length=10)
-    name = models.CharField(verbose_name="消息类型", max_length=10, blank=True)
+    scope = models.SlugField(verbose_name="范围", max_length=10)
+    name = models.CharField(verbose_name="范围名称", max_length=10, blank=True)
 
     def save(self, force_insert=False, force_update=False, using=None,
              update_fields=None):
         if not self.name:
-            self.name = self.category
+            self.name = self.scope
+            super().save(force_insert=force_insert, force_update=force_update,
+                         using=using, update_fields=update_fields)
 
-        super().save(force_insert=force_insert, force_update=force_update,
-                     using=using, update_fields=update_fields)
+    def __str__(self):
+        return "Message:{}".format(self.scope)
 
     class Meta:
-        verbose_name = "消息类型"
+        verbose_name = "消息范围"
         verbose_name_plural = verbose_name
 
 
@@ -95,10 +78,11 @@ class Message(models.Model):
     """
     用户消息Model
     """
-    user = models.ForeignKey(to=User, verbose_name="用户", on_delete=models.CASCADE)
-    sender = models.CharField(max_length=15, verbose_name="发送者", default="system", blank=True)
-    # 消息类型
-    category = models.ForeignKey(to=MessageCategory, verbose_name="消息类型", blank=True, on_delete=models.CASCADE)
+    user = models.ForeignKey(to=User, verbose_name='用户', on_delete=models.CASCADE)
+    sender = models.CharField(max_length=15, verbose_name="发送者", default='system', blank=True)
+    # 消息类型，想用type，但是还是用scope，type和types是mysql的预保留字
+    scope = models.ForeignKey(to=MessageScope, verbose_name="消息范围", blank=True,
+                              on_delete=models.CASCADE)
     title = models.CharField(max_length=100, verbose_name="消息标题")
     content = models.CharField(max_length=512, verbose_name="消息内容", blank=True)
     link = models.CharField(max_length=128, verbose_name="链接", blank=True, null=True)
@@ -112,9 +96,9 @@ class Message(models.Model):
         if not self.content:
             self.content = self.title
         # 设置scope
-        if not self.category:
-            category, created = MessageCategory.objects.get_or_create(category="default")
-            self.category = category
+        if not self.scope:
+            scope, created = MessageScope.objects.get_or_create(scope="default")
+            self.scope = scope
 
         return super().save(force_insert=force_insert, force_update=force_update,
                             using=using, update_fields=update_fields)

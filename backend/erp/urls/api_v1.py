@@ -1,16 +1,18 @@
 # -*- coding:utf-8 -*-
 from django.urls import path, include
 
+
 urlpatterns = [
     # 前缀：/api/v1/
-    # account api
     path('account/', include(arg=("account.urls.api", "account"), namespace="account")),
-    # organization api
-    path('organization/', include(arg=("organization.urls.api", "account"), namespace="organization")),
 
+    # 配置相关的api
+    path('config/', include(arg=("config.urls.api", "config"), namespace="config")),
     # Model日志相关的api
     path('modellog/', include(arg=('modellog.urls', 'modellog'), namespace='modellog')),
-    # util api
-    path('utils/', include(arg=("utils.urls.api", "utils"), namespace="utils")),
+    # 配置
+    path('config/', include(arg=("config.urls.api", "config"), namespace="config")),
 
+    # Utils相关的api
+    path('utils/', include(arg=('utils.urls.api', 'utils'), namespace='utils')),
 ]

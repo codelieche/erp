@@ -2,38 +2,30 @@
 """
 用户消息相关的视图
 """
-from rest_framework import generics
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
 
+from codelieche.views.viewset import ModelViewSet
 from account.serializers.message import MessageSerializer
 from account.models import Message
 
 
-class MessageCreateView(generics.CreateAPIView):
-    """创建用户消息api"""
-    queryset = Message.objects.all()
-    serializer_class = MessageSerializer
-    # 权限控制
-    permission_classes = (IsAuthenticated,)
-
-
-class MessageListView(generics.ListAPIView):
+class MessageApiModelViewSet(ModelViewSet):
     """
-    用户消息列表api View
-    > 用户只能看到自己的消息列表
+    Message Api View Set
     """
-    # queryset = Message.objects.filter(deleted=False)
+    queryset = Message.objects.filter(is_deleted=False)
     serializer_class = MessageSerializer
+    serializer_class_set = (MessageSerializer,)
     # 权限控制
     permission_classes = (IsAuthenticated,)
 
     # 搜索和过滤
     filter_backends = (DjangoFilterBackend, SearchFilter, OrderingFilter)
+    filter_fields = ('scope', 'unread')
     search_fields = ('title', 'content')
-    # filter_fields = ('category', 'unread')
     ordering_fields = ('id', 'time_added')
     ordering = ('-time_added',)
 
@@ -45,27 +37,16 @@ class MessageListView(generics.ListAPIView):
         # 第2步：获取到type【read、unread、all】
         _type = self.request.GET.get('type', 'all')
         if _type == 'read':
-            queryset = Message.objects.filter(user=user, is_deleted=False, unread=False)\
+            queryset = Message.objects.filter(user=user, is_deleted=False, unread=False) \
                 .order_by('-id')
         elif _type == 'unread':
-            queryset = Message.objects.filter(user=user, is_deleted=False, unread=True)\
+            queryset = Message.objects.filter(user=user, is_deleted=False, unread=True) \
                 .order_by('-id')
         else:
             queryset = Message.objects.filter(user=user, is_deleted=False).order_by('-id')
 
         # 第3步：返回结果集
         return queryset
-
-
-class MessageDetailView(generics.RetrieveDestroyAPIView):
-    """
-    用户消息详情View
-    > 只能获取到用户自己的消息，即使是超级用户，也只能查看到自己的消息，不可以去看别人的
-    """
-    queryset = Message.objects.filter(is_deleted=False)
-    serializer_class = MessageSerializer
-    # 权限控制
-    permission_classes = (IsAuthenticated,)
 
     def get_object(self):
         # 1. 先获取到用户
@@ -90,7 +71,7 @@ class MessageDetailView(generics.RetrieveDestroyAPIView):
             instance.save(update_fields=('unread',))
         return super().retrieve(request, *args, **kwargs)
 
-    def delete(self, request, *args, **kwargs):
+    def destroy(self, request, *args, **kwargs):
         # 1. 获取到user和对象
         user = self.request.user
         instance = self.get_object()

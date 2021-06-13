@@ -4,7 +4,7 @@
 """
 from rest_framework import serializers
 
-from account.models import User, Message, MessageCategory
+from account.models import User, Message, MessageScope
 
 
 class MessageSerializer(serializers.ModelSerializer):
@@ -13,22 +13,22 @@ class MessageSerializer(serializers.ModelSerializer):
     """
     user = serializers.SlugRelatedField(read_only=False, slug_field='username',
                                         queryset=User.objects.all())
-    category = serializers.SlugRelatedField(read_only=False, slug_field="category",
-                                            queryset=MessageCategory.objects.all(),
-                                            required=False)
+    scope = serializers.SlugRelatedField(read_only=False, slug_field="scope",
+                                         queryset=MessageScope.objects.all(),
+                                         required=False)
 
     def create(self, validated_data):
         user = self.context['request'].user
         validated_data['unread'] = True
         validated_data['sender'] = user.username
-        category = validated_data.get("category")
-        if not category:
-            category, created = MessageCategory.objects.get_or_create(category="default")
-            validated_data["category"] = category
+        scope = validated_data.get("scope")
+        if not scope:
+            scope, created = MessageScope.objects.get_or_create(scope="default")
+            validated_data["scope"] = scope
 
         return super().create(validated_data)
 
     class Meta:
         model = Message
-        fields = ('id', 'user', 'sender', 'category',
+        fields = ('id', 'user', 'sender', 'scope',
                   'title', 'content', 'link', 'unread', 'time_added')

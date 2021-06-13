@@ -4,47 +4,6 @@ from rest_framework import serializers
 from account.models import User
 
 
-class UserLoginSerializer(serializers.Serializer):
-    """用户登录 Serializer"""
-    username = serializers.CharField(max_length=40, required=True)
-    password = serializers.CharField(max_length=40, required=True)
-
-
-class UserSimpleInfoSerializer(serializers.ModelSerializer):
-    """
-    用户基本信息Model Serializer
-    """
-
-    class Meta:
-        model = User
-        fields = ('id', 'username', 'nick_name')
-
-
-class UserAllListSerializer(serializers.ModelSerializer):
-    """
-    列出所有用户的信息Model Serializer
-    """
-    parent = serializers.SlugRelatedField(slug_field="username", read_only=True)
-
-    class Meta:
-        model = User
-        fields = ('id', 'username', 'nick_name', 'id_card', 'mobile', 'dingding', 'wechart', "ucode", "parent",
-                  'is_superuser', 'is_active', 'can_view', 'last_login', 'is_deleted', "date_joined")
-
-
-class UserDetailSerializer(serializers.ModelSerializer):
-    """
-    用户详情/编辑序列化Model
-    """
-
-    class Meta:
-        model = User
-        fields = ('id', 'username', 'nick_name', 'id_card', 'is_active', 'mobile',
-                  'dingding', 'wechart', 'ucode', 'can_view',
-                  'is_superuser', 'last_login', 'is_deleted')
-        read_only_fields = ('id', 'username', 'last_login')
-
-
 class UserModelSerializer(serializers.ModelSerializer):
     """
     User Model Serializer
@@ -54,27 +13,88 @@ class UserModelSerializer(serializers.ModelSerializer):
         request = self.context["request"]
         # 密码校验
         password = request.data.get("password")
-        repassword = request.data.get("repassword")
+        re_password = request.data.get("re_password")
 
-        if password and repassword:
-            if password != repassword:
+        if password and re_password:
+            if password != re_password:
                 raise serializers.ValidationError("输入的密码不相同")
         else:
-            raise serializers.ValidationError("请输入密码")
+            raise serializers.ValidationError("请输入密码和重复密码")
 
-        ucode = request.query_params.get("ucode")
         instance = super().create(validated_data=validated_data)
-        if ucode:
-            parent = User.objects.filter(ucode=ucode).first()
-            instance.parent = parent
-            # instance.save()
+
         # 设置密码
-        instance.set_password(password)
+        instance.set_password(password.strip())
         instance.nick_name = instance.username
+        # 注册的用户都需要管理员，手动设置其是否可访问本系统
         instance.can_view = False
+
+        # 如果当前登录了用户，且是超级管理员，那么是可以设置其它字段
+        user = request.user
+        if user.is_superuser:
+            for item in ['is_active', 'is_superuser', 'can_view']:
+                value = request.data.get(item)
+                if value:
+                    setattr(instance, item, value)
+            instance.can_view = True
+
         instance.save()
         return instance
 
     class Meta:
         model = User
-        fields = ("id", "email", "username", "nick_name", 'id_card', "mobile", "qq", "wechart")
+        fields = ("id", "username", "nick_name", "is_active",  "email", "mobile", "dingding", "wechart")
+
+
+class UserLoginSerializer(serializers.Serializer):
+    """用户登录 Serializer"""
+    username = serializers.CharField(max_length=40, required=True)
+    password = serializers.CharField(max_length=40, required=True)
+
+
+class UserChangePasswordSerializer(serializers.Serializer):
+    """用户修改密码 Serializer"""
+    username = serializers.CharField(max_length=40, required=True)
+    old_password = serializers.CharField(max_length=40, required=True)
+    password = serializers.CharField(max_length=40, required=True)
+    re_password = serializers.CharField(max_length=40, required=True)
+
+
+class UserSimpleInfoSerializer(serializers.ModelSerializer):
+    """
+    用户基本信息Model Serializer
+    """
+
+    class Meta:
+        model = User
+        fields = ('id', 'username')
+
+
+class UserAllListSerializer(serializers.ModelSerializer):
+    """
+    列出所有用户的信息Model Serializer
+    """
+
+    class Meta:
+        model = User
+        fields = (
+            'id', 'username', 'nick_name', 'mobile', 'email',
+            'dingding', 'wechart', "can_view", "date_joined",
+            'is_superuser', 'is_active', 'last_login', 'is_deleted'
+        )
+
+
+class UserDetailSerializer(serializers.ModelSerializer):
+    """
+    用户详情/编辑序列化Model
+    """
+
+    class Meta:
+        model = User
+        fields = (
+            'id', 'username', 'nick_name', 'is_active',
+            'mobile', 'email',
+            'dingding', 'wechart', "can_view",
+            'is_superuser', 'last_login', 'is_deleted'
+        )
+        read_only_fields = ('id', 'username', 'last_login')

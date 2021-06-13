@@ -18,7 +18,7 @@ class CustomBackend(ModelBackend):
     """
     def authenticate(self, request, username=None, password=None, **kwargs):
         try:
-            # 用户有可能传入的是邮箱或者用户名或者手机
+            # 用户有可能传入的是邮箱或者用户名或者手机号
             # 用Q来让查询条件实现或的功能
             if User == UserProfile:
                 user = User.objects.get(
