@@ -19,6 +19,11 @@ class Model(models.Model):
     class Meta:
         verbose_name = "资产模型"
         verbose_name_plural = verbose_name
+        # permissions = (
+        #     ('can_add_model', '添加资产Model'),
+        #     ('can_edit_model', '能修改资产Model'),
+        #     ('can_run_task', '能执行资产Model任务'),
+        # )
 
     def delete(self, using=None, keep_parents=False):
         if self.deleted:

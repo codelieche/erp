@@ -10,12 +10,14 @@ from cmdb.views.field import (
 )
 from cmdb.views.instance import InstanceApiViewSet
 from cmdb.views.value import ValueApiViewSet
+from cmdb.views.permission import PermissionApiViewSet
 
 router = DefaultRouter()
 router.register('model', ModelApiViewSet)
 router.register('field', FieldApiViewSet)
 router.register('instance', InstanceApiViewSet)
 router.register('value', ValueApiViewSet)
+router.register('permission', PermissionApiViewSet)
 
 urlpatterns = [
     # 前缀：/api/v1/cmdb/
