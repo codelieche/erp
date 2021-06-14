@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     # 自己写的app
     'codelieche.apps.CodeliecheConfig',
     'account.apps.AccountConfig',
+    'cmdb.apps.CmdbConfig',
     'config.apps.ConfigConfig',
     'modellog.apps.ModellogConfig',
     'utils.apps.UtilsConfig',
