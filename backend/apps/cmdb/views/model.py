@@ -3,7 +3,9 @@ from rest_framework.permissions import IsAuthenticated
 
 from codelieche.views.viewset import ModelViewSet
 from cmdb.models import Model
-from cmdb.serializers import ModelSerializer
+from cmdb.serializers import (
+    ModelSerializer, ModelInfoSerializer,
+)
 
 
 class ModelApiViewSet(ModelViewSet):
@@ -12,7 +14,7 @@ class ModelApiViewSet(ModelViewSet):
     """
     queryset = Model.objects.filter(deleted=False)
     serializer_class = ModelSerializer
-    serializer_class_set = (ModelSerializer,)
+    serializer_class_set = (ModelSerializer, ModelInfoSerializer)
     permission_classes = (IsAuthenticated,)
 
     search_fields = ('name', 'code',)

@@ -2,6 +2,7 @@
 from django.db import models
 
 from account.models import User
+from cmdb.types import get_instance
 from cmdb.models import Model
 
 
@@ -18,6 +19,8 @@ class Field(models.Model):
     # 数值类型：IntField、FloatField、
     # 其它类型：BooleanField、IPField、DateField、DateTimeField
     type = models.CharField(verbose_name="字段类型", default="ChartField", max_length=20, blank=True)
+    # 是否允许空值
+    allow_null = models.BooleanField(verbose_name="允许空值", default=False, blank=True)
     # 是否创建索引、是否唯一、是否多值
     db_index = models.BooleanField(verbose_name="使用索引", default=False, blank=True)
     unique = models.BooleanField(verbose_name="是否唯一", default=False, blank=True)
@@ -31,6 +34,20 @@ class Field(models.Model):
     user = models.ForeignKey(verbose_name="用户", to=User, blank=True, null=True, on_delete=models.SET_NULL)
     deleted = models.BooleanField(verbose_name="删除", blank=True, default=False)
     time_added = models.DateTimeField(verbose_name="添加时间", blank=True, auto_now_add=True)
+
+    def validate_value(self, value, stringify=False):
+        """
+        校验字段的值，并返回其类型的值
+        """
+        instance = get_instance(self.type, self.option)
+        if instance:
+            if stringify:
+                v = instance.stringify(value=value)
+            else:
+                v = instance.destringify(value=value)
+            return v
+        else:
+            return ValueError('校验字段的值出错：未找到类型实例')
 
     class Meta:
         verbose_name = "资产模型字段"
