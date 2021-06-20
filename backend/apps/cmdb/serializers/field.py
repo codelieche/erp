@@ -44,7 +44,30 @@ class FieldModelSerializer(serializers.ModelSerializer):
         return self.check_json_field(value=value)
 
     def validate(self, attrs):
-        # 情况判断：如果设置了
+        # 情况判断：如果设置的ForeignKey, ManyToManyField就需要判断option的model和field是否存在
+        type_ = attrs['type']
+        if type_ in ['ForeignKey', 'OneToOneField', 'ManyToManyField']:
+            model_code = attrs['option'].get('model')
+            code = attrs['code']
+            if not model_code:
+                raise serializers.ValidationError('{}字段的option需要设置model'.format(code))
+            model = Model.objects.filter(code=model_code).first()
+            if not model:
+                raise serializers.ValidationError('{}字段设置的Model({})不存在'.format(code, model_code))
+
+            # 现在校验Field
+            field_code = attrs['option'].get('field')
+            if not field_code:
+                raise serializers.ValidationError('{}字段的option需要设置field'.format(code))
+            if field_code != 'id':
+                field = Field.objects.filter(model=model, code=field_code).first()
+                if not field:
+                    raise serializers.ValidationError('{}字段设置的Field({})不存在'.format(code, field_code))
+                else:
+                    # 校验这个字段是否可设置为外键
+                    if not field.unique or field.multi:
+                        raise serializers.ValidationError('{}字段设置的Field({})不可设置为关联外键'.format(code, field_code))
+
         return attrs
 
     def create(self, validated_data):

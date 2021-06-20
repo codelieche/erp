@@ -10,6 +10,7 @@ from .float import FloatField
 from .ip import IPAddressField
 from .datetime import DateField, DateTimeField
 from .dict import JsonField
+from .foreignkey import ForeignKey
 
 
 def get_class(type_: str):

@@ -10,6 +10,7 @@ type_instance_cache = {
     # "IPField_option_xxx": "xxx"
 }
 # models.EmailField
+# models.OneToOneField
 
 
 class BaseType:
@@ -39,7 +40,7 @@ class BaseType:
 
     def stringify(self, value):
         """校验值并返回字符串"""
-        raise str(self.validate(data=value))
+        return str(self.validate(data=value))
 
     def destringify(self, value):
         """校验值并返回目标类型的值"""
