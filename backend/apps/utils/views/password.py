@@ -5,7 +5,7 @@ from rest_framework.permissions import IsAuthenticated
 from django.contrib.auth import authenticate
 from django.conf import settings
 
-from utils.tools.password import Cryptography
+from codelieche.tools.password import Cryptography
 
 
 class PasswordDecryptoApiView(APIView):

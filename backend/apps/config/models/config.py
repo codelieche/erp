@@ -4,7 +4,7 @@
 """
 
 from django.db import models
-from utils.tools.password import Cryptography
+from codelieche.tools.password import Cryptography
 
 # from account.models import User
 
