@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     'codelieche.apps.CodeliecheConfig',
     'account.apps.AccountConfig',
     'cmdb.apps.CmdbConfig',
+    'workflow.apps.WorkflowConfig',
     'config.apps.ConfigConfig',
     'modellog.apps.ModellogConfig',
     'utils.apps.UtilsConfig',
@@ -130,8 +131,8 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/3.2/topics/i18n/
 
-# LANGUAGE_CODE = 'en-us'
-LANGUAGE_CODE = 'zh-hans'
+LANGUAGE_CODE = 'en-us'
+# LANGUAGE_CODE = 'zh-hans'
 
 # TIME_ZONE = 'UTC'
 TIME_ZONE = 'Asia/Shanghai'
