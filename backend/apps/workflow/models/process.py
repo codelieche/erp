@@ -42,7 +42,7 @@ class Process(BaseModel):
     def entry_task(self):
         # 进入这个process，可能是发短信，也可能是立刻进入下一个环节
         # 其实是调用插件实例的事件
-        print("进入当前过程，处理事件")
+        print("进入当前过程，处理事件: Process:{}-{}".format(self.id, self.step.name))
         # 1. 获取到当前的插件对象
         # plugin_class = self.step.plugin_class
         # # 如果传递的plugin不存在就直接报错
@@ -98,6 +98,12 @@ class Process(BaseModel):
             self.workflow.current = process.id
             # 记得保存一下
             self.workflow.save()
+
+            # 这个还得待确定，暂时先修改
+            # 在进入下一个process的下一个任务之前，如果当前process的状态为tood，那么需要设置为success
+            if self.status == "todo":
+                self.status = "success"
+                self.save()
 
             # print("实例化下一个process成功：", process)
             # 触发进入这个流程的事件

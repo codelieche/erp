@@ -6,11 +6,14 @@ from .shell import ShellExecutePlugin
 from .approve import ApprovePlugin
 from .do import DoCoreTaskPlugin
 from .message import MessagePlugin
+from .gitflow import GitFlowPlugin
+from .jenkins import JenkinsPlugin
 
 
 # 插件列表
 plugins = [
-    MySQLPlugin, ProjectCreatePlugin, ShellExecutePlugin, ApprovePlugin, DoCoreTaskPlugin, MessagePlugin
+    MySQLPlugin, ProjectCreatePlugin, ShellExecutePlugin, ApprovePlugin, DoCoreTaskPlugin, MessagePlugin,
+    GitFlowPlugin, JenkinsPlugin,
 ]
 plugins_list = []
 plugins_dict = {}

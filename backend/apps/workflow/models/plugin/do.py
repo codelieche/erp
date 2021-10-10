@@ -25,6 +25,7 @@ class DoCoreTaskPlugin(Plugin):
     auto_execute = models.BooleanField(verbose_name="自动执行", blank=True, default=False)
 
     def entry_task(self, workflow, process, step):
+        # 我也是使用自己的entry_task，而不是通用的entry_task
         print("进入do_core_task流程，如果是自动执行的，那么我们就执行核心任务")
         # process.entry_next_process()
         if self.auto_execute:

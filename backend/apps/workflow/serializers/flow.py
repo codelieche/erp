@@ -10,6 +10,7 @@ from workflow.serializers.step import StepModelSerializer
 class FlowModelSerializer(serializers.ModelSerializer):
     """
     流程Model Serializer
+    其实需要检查流程是否合理，比如未设置自动执行的插件，它是否配置了do_core_task_plugin的插件
     """
     steps = StepModelSerializer(many=True, required=False, allow_null=True)
 
@@ -19,6 +20,33 @@ class FlowModelSerializer(serializers.ModelSerializer):
         """
         steps_list = []
         if steps and isinstance(steps, list) and len(steps) > 0:
+            # 先检查一下步骤是否设置的合理
+            need_do_core_task_plugin = False
+            for item in steps:
+                # 有可能插件是删除了的，我们就跳过一下
+                step_id = item.get('id')
+                if step_id and step_id > 0:
+                    # 更新步骤数据
+                    step = Step.objects.filter(flow=flow, id=step_id, deleted=False)
+                    if not step:
+                        # 如果插件不存在，就跳过
+                        continue
+                # 对插件进行判断
+                if item.get('plugin') != "do_core_task_plugin":
+                    auto_execute = item.get('auto_execute', False)
+                    if auto_execute is True or auto_execute == 1:
+                        if not need_do_core_task_plugin:
+                            # 如果前面的插件需要do_core_task_plugin，那么这里依然不可设置为False
+                            need_do_core_task_plugin = False
+                    else:
+                        need_do_core_task_plugin = True
+                else:
+                    need_do_core_task_plugin = False
+
+            # 最后遍历完毕发现，还需要need_do_core_task_plugin那么就报错
+            if need_do_core_task_plugin:
+                raise serializers.ValidationError("我需要do_core_task_plugin结尾，请重新组合插件")
+
             for item in steps:
                 # 校验插件是否存在:
                 step_id = item.get('id')

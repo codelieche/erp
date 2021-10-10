@@ -53,11 +53,37 @@ class Plugin(BaseModel):
         :param step: 工作流的步骤
         :return:
         """
-        print("现在进入entry_task，请自行实现:", workflow, process, step)
-        raise NotImplementedError("请自行实现entry_task")
+        # 特殊情况，请自行覆盖本方法
+        if process.auto_execute:
+            self.core_task(workflow=workflow, process=process, step=step)
+        else:
+            # 这种情况一般是结合后续步骤的do_core_task_plugin来结合使用
+            process.entry_next_process()
+
+    def execute_core_task(self):
+        print("我是执行核心任务的函数，所有核心的操作可以放整个地方")
+        raise NotImplementedError("请实现Execute Core Task方法")
 
     def core_task(self, workflow: WorkFlow, process, step):
-        raise NotImplementedError("请实现Core Task方法")
+        # 可以考虑把这个设置为通用的方法
+        success, result = self.execute_core_task()
+        # 设置以及执行了
+        self.core_task_executed = True
+        if success:
+            self.status = "success"
+        else:
+            self.status = "error"
+        # 对插件保存一下
+        self.save()
+
+        # 执行完毕，如果process.auto_execute，那么我们要触发process的执行结果
+        # 这是一个规范：如果不遵循，那么就没法自动跳入下一个步骤
+        if process.auto_execute:
+            # 这里会直接进入下一个步骤（成功的情况下），出错了就直接error，整个流程也就报错
+            process.handle_execute_result(success, result)
+
+        # 返回执行结果
+        return success, result
 
     class Meta:
         abstract = True

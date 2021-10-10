@@ -6,7 +6,7 @@ from django.db import models
 
 from account.models import User
 from .base import Plugin
-from workflow.models.workflow import WorkFlow
+# from workflow.models.workflow import WorkFlow
 
 
 class MessagePlugin(Plugin):
@@ -20,14 +20,19 @@ class MessagePlugin(Plugin):
     }
 
     users = models.ManyToManyField(verbose_name="接收用户", to=User, blank=True)
+    content = models.CharField(verbose_name="消息内容", max_length=512, blank=True, null=True)
 
-    def entry_task(self, workflow, process, step):
-        print("进入message流程")
-        # process.entry_next_process()
+    # def entry_task(self, workflow, process, step):
+    #     print("进入message流程")
+    #     # process.entry_next_process()
 
-    def core_task(self, workflow: WorkFlow, process, step):
-        print("Workflow:{}, 开始发送消息给{}".format(workflow, self.users))
+    def execute_core_task(self):
+        print("执行消息插件的核心方法：", self.content)
         return True, "执行成功"
+
+    # def core_task(self, workflow: WorkFlow, process, step):
+    #     print("Workflow:{}, 开始发送消息给{}".format(workflow, self.users))
+    #     return True, "执行成功"
 
     class Meta:
         verbose_name = "消息插件"

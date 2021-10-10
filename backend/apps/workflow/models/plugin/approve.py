@@ -25,6 +25,7 @@ class ApprovePlugin(Plugin):
     content = models.CharField(verbose_name="审批内容", blank=True, null=True, max_length=256)
 
     def entry_task(self, workflow, process, step):
+        # 我需要有自己的entry_task，不可以自动跳入下一个步骤
         print("现在开始提醒用户，当前流程需要你审批咯")
 
     def execute_core_task(self):
