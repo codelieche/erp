@@ -109,6 +109,7 @@ class WorkFlowModelSerializer(serializers.ModelSerializer):
             process = Process.objects.create(
                 flow=instance.flow_id, workflow=instance, step=step,
                 plugin_id=plugin.id, status="success",
+                auto_execute=step.auto_execute,
             )
             # 保存一下当前流程实例的当前步骤
             instance.current = process.id
@@ -120,7 +121,6 @@ class WorkFlowModelSerializer(serializers.ModelSerializer):
 
         else:
             raise serializers.ValidationError("一般不会出现这个错误")
-
 
         return instance
 

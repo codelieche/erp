@@ -2,6 +2,13 @@
 """
 作业流程的没一个过程
 Flow配置的一个Step对应一个Process，可以转交的话，就对应多个了
+
+process的设计：
+1. entry_task: 进入这个过程
+2. core_task: 核心任务
+3. auto_execute: 是否自动执行【里面有好一些规范，插件是需要遵守的，如果不遵守那就没办法了】
+4. entry_next_process: 进入下一个步骤
+5. 很多的设计都是要插件配合的，因为process一般是固定写好了 不会大动，但是plugin是会不断添加的
 """
 from django.db import models
 
@@ -19,6 +26,8 @@ class Process(BaseModel):
     step = models.ForeignKey(verbose_name="步骤", to=Step, blank=True, on_delete=models.CASCADE)
     plugin_id = models.IntegerField(verbose_name="插件实例的ID")
     status = models.CharField(verbose_name="状态", blank=True, default="todo", max_length=20)
+    # 当前步骤是否自动执行的：如果是，那么插件会在entry_task的时候自动进入core_task
+    auto_execute = models.BooleanField(verbose_name="自动执行", blank=True, default=False)
 
     @property
     def plugin_obj(self):
@@ -41,6 +50,7 @@ class Process(BaseModel):
         plugin = self.plugin_obj
 
         # 2. 执行插件的entry任务
+        # 当process.auto_execute，就会再entry_task中自动进入core_task, 这算是个约定，插件需要这样遵循
         plugin.entry_task(workflow=self.workflow, process=self, step=self.step)
 
         # 3. 有些插件是直接进入下一个任务的
@@ -80,7 +90,9 @@ class Process(BaseModel):
 
             # 3. 实例化下一个process
             process = Process.objects.create(
-                flow=self.flow, workflow=self.workflow, step=next_step, plugin_id=plugin.id)
+                flow=self.flow, workflow=self.workflow,
+                step=next_step, plugin_id=plugin.id, auto_execute=next_step.auto_execute,
+            )
 
             # 把workflow的当前process修改一下
             self.workflow.current = process.id
@@ -94,6 +106,32 @@ class Process(BaseModel):
         else:
             raise ValueError("一般不会出现这个错误")
 
+    def handle_execute_result(self, success=False, result=None):
+        """
+        当前过程设置了字段执行
+        出错/成功都需要调用这个方法，会修改自己的状态，同时会修改workflow的状态
+        :param success: 是否成功执行
+        :param result: 出错的信息
+        :return:
+        """
+        # 1. 校验process的状态
+        if self.status in ["error", "cancel", "done"]:
+            raise ValueError("出现这个错误，请调整代码逻辑:{}".format(result))
+
+        # 2. 设置状态
+        status = "success" if success else "error"
+        self.status = status
+        self.save()
+
+        # workflow的状态，如果是出错我们就保存，是成功就交给下一步的操作来处理
+        if not success:
+            self.workflow.status = "error"
+            self.workflow.save()
+
+        # 3. 如果成功，那么就需要自动进入下一个步骤
+        if success and self.auto_execute:
+            self.entry_next_process()
+
     def core_task(self):
         # 进入这个process的核心任务，可能是发短信，也可能是直接通过，进入下一个环节
         # 其实是调用插件实例的事件
@@ -106,7 +144,7 @@ class Process(BaseModel):
 
         # 2. 执行插件的核心任务
         # 2-1：判断是否可以进入核心任务
-        if self.status in plugin.CAN_EXECUTE_CORE_TASK_STATUS:
+        if self.status in plugin.CAN_EXECUTE_CORE_TASK_STATUS or (self.status == "todo" and self.auto_execute):
             if plugin.core_task_executed:
                 # print("当前插件的核心任务已经执行过了，不可执行")
                 return False, "核心任务已经执行过了，不可继续执行"
@@ -115,6 +153,8 @@ class Process(BaseModel):
                 #     return False, "当前插件状态不是todo不可执行"
                 # 执行插件的核心任务：非常重要哦
                 success, msg = plugin.core_task(workflow=self.workflow, process=self, step=self.step)
+
+                # 核心任务执行失败，应该终止和报错了
 
                 # 考虑一下，这里是否需要修改process的状态
                 return success, msg

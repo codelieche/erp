@@ -23,6 +23,8 @@ class Step(BaseModel):
     order = models.IntegerField(verbose_name="排序", blank=True, default=1)
     plugin = models.CharField(verbose_name="插件的code", max_length=64)
     data = models.JSONField(verbose_name="插件初始化数据", blank=True, null=True)
+    # 当前步骤是否自动立刻执行: 最终是很多步骤会一步一步的去执行
+    auto_execute = models.BooleanField(verbose_name="自动执行", blank=True, default=False)
 
     @property
     def plugin_class(self):

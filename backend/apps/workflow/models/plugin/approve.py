@@ -39,7 +39,7 @@ class ApprovePlugin(Plugin):
 
         if process.status in ["agree", "success"]:
             if self.status not in ['todo']:
-                return False, "当前插件不是todo不可执行核心任务"
+                return False, "当前插件不是todo不可执行核心任务:{}-{}-{}".format(workflow.id, process.id, self.id)
             else:
                 # 把状态设置为doing，这样可防止重复执行
                 self.status = "doing"
@@ -68,7 +68,6 @@ class ApprovePlugin(Plugin):
                     return False, "执行出错：{}".format(result)
         else:
             return False, "Process未知状态({})，不可执行".format(process.status)
-
 
     class Meta:
         verbose_name = "审批插件"

@@ -86,8 +86,9 @@ class WorkFlowApiModelViewSet(ModelViewSet):
         if status in ["agree", "success"]:
             process.status = status
             process.save()
-            print("执行当前process的核心任务")
-            process.core_task()
+            print("执行当前process的核心任务：", workflow, process)
+            success, result = process.core_task()
+            print("执行核心任务返回结果：", success, result)
 
             # 操作成功
             content = {

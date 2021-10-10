@@ -10,4 +10,4 @@ class StepModelSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Step
-        fields = ("id", "name", "plugin", "stage", "step", "order", "data")
+        fields = ("id", "name", "plugin", "stage", "step", "order", "data", "auto_execute")

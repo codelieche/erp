@@ -9,7 +9,7 @@ class ProcessModelSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Process
-        fields = ("id", "step", "workflow_id", "status")
+        fields = ("id", "step", "workflow_id", "status", "auto_execute")
 
 
 class ProcessInfoModelSerializer(serializers.ModelSerializer):
@@ -18,4 +18,4 @@ class ProcessInfoModelSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Process
-        fields = ("id", "step", "workflow_id", "status")
+        fields = ("id", "step", "workflow_id", "status", "auto_execute")

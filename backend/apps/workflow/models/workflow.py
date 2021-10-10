@@ -60,7 +60,7 @@ class WorkFlow(BaseModel):
             return self.flow.steps.first()
         else:
             # 获取当前步骤的下一个，默认order是不相等的，且都是正确排好序的
-            next_step = self.flow.step_set.filter(order__gt=current.order).order_by("order").first()
+            next_step = self.flow.step_set.filter(order__gt=current.order, deleted=False).order_by("order").first()
             return next_step
 
     @staticmethod

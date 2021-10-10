@@ -37,7 +37,7 @@ class DoCoreTaskPlugin(Plugin):
         #     return False, "核心任务已经执行过了，不可继续执行"
 
         if self.status not in ['todo', "agree", "sucess"]:
-            return False, "当前插件不是todo不可执行核心任务"
+            return False, "当前插件不是todo不可执行核心任务:{}-{}-{}".format(workflow.id, process.id, self.id)
         else:
             # 把状态设置为doing，这样可防止重复执行
             self.status = "doing"
@@ -57,15 +57,18 @@ class DoCoreTaskPlugin(Plugin):
                     continue
                 else:
                     # 执行当前process的核心任务
-                    sucess, msg = process_i.core_task()
+                    sucess, result = process_i.core_task()
                     if not sucess:
                         # 执行出错了：
-                        msg = "执行Process:{}, 出错:{}".format(process_i, msg)
+                        msg = "执行Process:{}, 出错:{}".format(process_i, result)
                         print(msg)
                         # 设置错误状态
                         # 设置当前插件的状态为False
                         self.status = "error"
                         self.save()
+                        # 设置流程的状态为失败
+                        workflow.status = "error"
+                        workflow.save()
                         return False, msg
             else:
                 continue

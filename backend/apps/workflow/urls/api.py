@@ -7,12 +7,14 @@ from workflow.views.flow import FlowApiModelViewSet
 from workflow.views.step import StepApiModelViewSet
 from workflow.views.workflow import WorkFlowApiModelViewSet
 from workflow.views.process import ProcessApiModelViewSet
+from workflow.views.log import WorkflowLogApiViewSet
 
 router = DefaultRouter()
 router.register("flow", FlowApiModelViewSet)
 router.register("step", StepApiModelViewSet)
 router.register("workflow", WorkFlowApiModelViewSet)
 router.register("process", ProcessApiModelViewSet)
+router.register("log", WorkflowLogApiViewSet)
 
 
 urlpatterns = [

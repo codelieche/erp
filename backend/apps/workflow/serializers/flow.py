@@ -27,6 +27,7 @@ class FlowModelSerializer(serializers.ModelSerializer):
                 stage = item.get('stage', 1)
                 step_number = item.get('step', 1)
                 data = item.get('data', "{}")
+                auto_execute = item.get('auto_execute', False)
 
                 if not plugin:
                     print("插件不可设置为空")
@@ -41,19 +42,20 @@ class FlowModelSerializer(serializers.ModelSerializer):
                         # plugin是不可更新的
                         # 需要重新计算一下order
                         order = 10 ** stage + step_number
-                        step.update(name=name, stage=stage, step=step_number, order=order, data=data)
+                        step.update(name=name, stage=stage, step=step_number, order=order, data=data,
+                                    auto_execute=auto_execute)
                         # step.name = name
                         # step.stage = stage
                         # step.step = step_number
                         # step.data = data
                         # step.save()
 
-                        steps_list.append(step)
+                        steps_list.append(step.first())
                 else:
                     # 创建新的步骤
                     step = Step.objects.create(
                         flow=flow, name=name, plugin=plugin,
-                        stage=stage, step=step_number, data=data)
+                        stage=stage, step=step_number, data=data, auto_execute=auto_execute)
                     steps_list.append(step)
         # 返回步骤列表
         return steps_list
@@ -78,11 +80,19 @@ class FlowModelSerializer(serializers.ModelSerializer):
 
         # 2. 更新步骤数据：注意删除step请单独删除
         steps = self.context['request'].data.get('steps')
-        self.create_or_update_steps(flow=instance, steps=steps)
+        if steps:
+            steps_list = self.create_or_update_steps(flow=instance, steps=steps)
+            # 遍历一下，如果不在当前steps_list里面的步骤就删除
+            steps_ids = [i.id for i in steps_list]
+            # 遍历flow的所有步骤，不在新的steps_list中的就删除
+            for step in instance.steps:
+                if step.id not in steps_ids:
+                    step.delete()
+
 
         # 3. 返回对象
         return instance
 
     class Meta:
         model = Flow
-        fields = ("id", "code", "name", "creater", "steps")
+        fields = ("id", "code", "name", "user", "steps")
