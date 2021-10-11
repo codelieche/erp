@@ -12,9 +12,15 @@ class Flow(BaseModel):
     """
     流程中心的流程
     """
+    delete_tasks = ("delete_task_change_code",)
+
     code = models.SlugField(verbose_name="流程的Code", blank=True, unique=True, max_length=108)
     name = models.CharField(verbose_name="流程", blank=True, max_length=128, null=True)
     user = models.CharField(verbose_name="创建者", blank=True, null=True, max_length=100)
+
+    def delete_task_change_code(self):
+        self.code = "{}_del_{}".format(self.code, self.strftime())
+        self.save()
 
     @property
     def steps(self):

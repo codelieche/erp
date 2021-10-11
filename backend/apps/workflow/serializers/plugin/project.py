@@ -11,7 +11,7 @@ from workflow.models.plugin.project import ProjectCreatePlugin
 class ProjectCreatePluginModelSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProjectCreatePlugin
-        fields = ("id", "sql", "content")
+        fields = ("id", "sql", "content", "status", "core_task_executed", "time_executed")
 
 
 # class ProjectCreatePlugin(Plugin):

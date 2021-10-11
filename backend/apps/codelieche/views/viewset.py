@@ -122,7 +122,7 @@ class ModelViewSet(LoggingViewSetMixin,
 class ReadOnlyViewSet(LoggingViewSetMixin,
                       RetrieveModelMixin,
                       ListModelMixin,
-                      GenericViewSet):
+                      SelfGenericViewSet):
 
     @action(methods=['GET'], detail=False, description="列出全部")
     def all(self, request, *args, **kwargs):

@@ -21,14 +21,16 @@ class MessagePlugin(Plugin):
 
     users = models.ManyToManyField(verbose_name="接收用户", to=User, blank=True)
     content = models.CharField(verbose_name="消息内容", max_length=512, blank=True, null=True)
+    # 接受上一步的数据字段
+    RECEIVE_INPUT_FIELDS = ("content",)
 
     # def entry_task(self, workflow, process, step):
     #     print("进入message流程")
     #     # process.entry_next_process()
 
     def execute_core_task(self):
-        print("执行消息插件的核心方法：", self.content)
-        return True, "执行成功"
+        print("执行消息插件的核心方法：{}".format(self.content))
+        return True, "执行成功", None
 
     # def core_task(self, workflow: WorkFlow, process, step):
     #     print("Workflow:{}, 开始发送消息给{}".format(workflow, self.users))

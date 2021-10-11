@@ -5,10 +5,12 @@
 import json
 
 from django.db import models
+from django.utils import timezone
 
 from codelieche.models import BaseModel
 from account.models import User
 from workflow.models.flow import Flow
+# from workflow.models.log import WorkFlowLog
 
 
 class WorkFlow(BaseModel):
@@ -24,6 +26,7 @@ class WorkFlow(BaseModel):
         ("error", "出错"),
         ("refuse", "拒绝"),
         ("cancel", "取消"),
+        ("delete", "删除"),
         ("deliver", "转交"),
         ("agree", "通过"),
         ("done", "完成"),
@@ -36,10 +39,13 @@ class WorkFlow(BaseModel):
         "error": 30,   # 出错、拒绝、成功、完成应该是一个级别的
         "refuse": 30,
         "cancel": 50,
+        "delete": 50,
         "deliver": 15,
         "agree": 15,
         "done": 30,
     }
+    delete_tasks = ['delete_task_change_status']
+
     flow = models.ForeignKey(verbose_name="流程", to=Flow, on_delete=models.CASCADE)
     # 标题是必填的
     title = models.CharField(verbose_name="流程标题", max_length=256)
@@ -49,6 +55,13 @@ class WorkFlow(BaseModel):
     current = models.IntegerField(verbose_name="当前步骤", blank=True, null=True)
     # 当前流程的数据，后续插件都会来这里取数据：step_id: {}  集合 step.data 组合实例化Plugin
     data = models.JSONField(verbose_name="流程数据", blank=True, null=True)
+    # 结束时间
+    time_finished = models.DateTimeField(verbose_name="完成时间", blank=True, null=True)
+
+    def delete_task_change_status(self):
+        # 删除的时候修改状态为delete
+        self.status = "delete"
+        self.save()
 
     def get_next_step(self, current=None):
         """
@@ -112,6 +125,16 @@ class WorkFlow(BaseModel):
         # 设置status_code
         if self.status_code != self.STATUS_CODE_DICT[self.status]:
             self.status_code = self.STATUS_CODE_DICT[self.status]
+
+        # 如果状态是：cancel、delete、done就需要设置一下结束时间
+        if self.status in ["cancel", "delete", "done"]:
+            self.time_finished = timezone.datetime.now()
+            # 设置完成
+            # if self.status == "done":
+            #     content = "流程完成"
+            #     category = "done"
+            #     WorkFlowLog.objects.create(workflow_id=self.id, category=category, content=content)
+
         return super().save(force_insert=force_insert, force_update=force_update,
                             using=using, update_fields=update_fields)
 

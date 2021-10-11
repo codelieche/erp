@@ -8,6 +8,7 @@ from workflow.serializers.plugin import plugin_serializers_mapping
 from workflow.models.flow import Flow
 from workflow.models.workflow import WorkFlow
 from workflow.models.process import Process
+from workflow.models.log import WorkFlowLog
 from workflow.serializers.process import ProcessInfoModelSerializer
 
 
@@ -34,7 +35,7 @@ class WorkFlowModelSerializer(serializers.ModelSerializer):
             plugin_name = step.plugin
             serailizer_class = plugin_serializers_mapping.get(plugin_name)
             if not serailizer_class:
-                raise serializers.ValidationError("不支持插件{}".format(plugin_name))
+                raise serializers.ValidationError("序列化还不支持插件{}".format(plugin_name))
 
             # 2-2：取出初始化插件的数据
             plugin_data = {}
@@ -88,6 +89,10 @@ class WorkFlowModelSerializer(serializers.ModelSerializer):
         # 2. 调用父类的创建方法
         # print(validated_data)
         instance = super().create(validated_data=validated_data)
+        # 记录日志：创建成功
+        user = self.context['request'].user
+        content = "{}创建流程成功".format(user.username)
+        WorkFlowLog.objects.create(workflow_id=instance.id, user=user.username, category="info", content=content)
 
         # 3. 初始化第一个步骤的process
         # 3-1: 获取到step
@@ -129,7 +134,8 @@ class WorkFlowModelSerializer(serializers.ModelSerializer):
         fields = (
             "id", "flow", "title",
             "status", "status_code",
-            "user", "current", "data"
+            "user", "current", "data",
+            "time_added", "time_finished",
         )
 
 
@@ -142,5 +148,6 @@ class WorkflowInfoModelSerializer(serializers.ModelSerializer):
         fields = (
             "id", "flow", "title",
             "status", "status_code",
-            "user", "current", "data", 'process_set'
+            "user", "current", "data", 'process_set',
+            "time_added", "time_finished",
         )

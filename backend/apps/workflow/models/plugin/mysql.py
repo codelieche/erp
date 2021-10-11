@@ -33,7 +33,9 @@ class MySQLPlugin(Plugin):
 
     def execute_core_task(self):
         print("模拟执行MySQL插件的核心任务：当前sql为：{}".format(self.sql))
-        return True, "执行成功"
+        for i in range(10):
+            print("模拟执行SQL:{}".format(i + 1))
+        return True, "执行成功", None
 
     # def core_task(self, workflow: WorkFlow, process, step):
     #     print("模拟执行MySQL插件的核心任务，当前workfow：{}".format(workflow))

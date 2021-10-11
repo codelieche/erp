@@ -10,7 +10,7 @@ from workflow.models.plugin.message import MessagePlugin
 class MessagePluginPluginModelSerializer(serializers.ModelSerializer):
     class Meta:
         model = MessagePlugin
-        fields = ("id", "users", "content")
+        fields = ("id", "users", "content", "status", "core_task_executed", "time_executed")
 
 
 # class MessagePlugin(Plugin):

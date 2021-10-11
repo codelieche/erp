@@ -10,7 +10,7 @@ from workflow.models.plugin.shell import ShellExecutePlugin
 class ShellExecutePluginModelSerializer(serializers.ModelSerializer):
     class Meta:
         model = ShellExecutePlugin
-        fields = ("id", "command")
+        fields = ("id", "command", "status", "core_task_executed", "time_executed")
 
 
 # class ShellExecutePlugin(Plugin):

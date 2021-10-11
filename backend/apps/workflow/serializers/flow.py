@@ -56,6 +56,7 @@ class FlowModelSerializer(serializers.ModelSerializer):
                 step_number = item.get('step', 1)
                 data = item.get('data', "{}")
                 auto_execute = item.get('auto_execute', False)
+                receive_input = item.get('receive_input', False)  # 是否接受上一步的输出作为这一步插件的输入
 
                 if not plugin:
                     print("插件不可设置为空")
@@ -70,8 +71,10 @@ class FlowModelSerializer(serializers.ModelSerializer):
                         # plugin是不可更新的
                         # 需要重新计算一下order
                         order = 10 ** stage + step_number
-                        step.update(name=name, stage=stage, step=step_number, order=order, data=data,
-                                    auto_execute=auto_execute)
+                        step.update(
+                            name=name, stage=stage, step=step_number, order=order, data=data,
+                            auto_execute=auto_execute, receive_input=receive_input
+                        )
                         # step.name = name
                         # step.stage = stage
                         # step.step = step_number
@@ -83,7 +86,9 @@ class FlowModelSerializer(serializers.ModelSerializer):
                     # 创建新的步骤
                     step = Step.objects.create(
                         flow=flow, name=name, plugin=plugin,
-                        stage=stage, step=step_number, data=data, auto_execute=auto_execute)
+                        stage=stage, step=step_number, data=data,
+                        auto_execute=auto_execute, receive_input=receive_input
+                    )
                     steps_list.append(step)
         # 返回步骤列表
         return steps_list

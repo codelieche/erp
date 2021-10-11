@@ -29,7 +29,7 @@ class ProjectCreatePlugin(Plugin):
 
     def execute_core_task(self):
         print("执行项目插件的核心任务")
-        return True, "执行成功"
+        return True, "执行成功", None
 
     # def core_task(self, workflow: WorkFlow, process, step):
     #     print("执行workfow:{}的核心任务".format(workflow))

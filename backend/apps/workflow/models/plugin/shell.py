@@ -31,7 +31,7 @@ class ShellExecutePlugin(Plugin):
 
     def execute_core_task(self):
         print("我现在开始执行shell的任务：{}".format(self.command))
-        return True, "执行成功"
+        return True, "执行成功", None
 
     # def core_task(self, workflow: WorkFlow, process, step):
     #     print("workflow:{},开始执行shell命令:{}".format(workflow, self.command))

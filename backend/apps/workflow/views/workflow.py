@@ -5,7 +5,9 @@ from rest_framework.response import Response
 from codelieche.views.viewset import ModelViewSet
 from workflow.models.workflow import WorkFlow
 from workflow.models.process import Process
+from workflow.models.log import WorkFlowLog
 from workflow.serializers.workflow import WorkFlowModelSerializer, WorkflowInfoModelSerializer
+from workflow.tasks.process import do_process_core_task
 
 
 class WorkFlowApiModelViewSet(ModelViewSet):
@@ -66,6 +68,7 @@ class WorkFlowApiModelViewSet(ModelViewSet):
         # 2. 根据状态执行相关的操作
         # 状态应该是：cancel/refuse/agree/sucess， doing/error/done的状态应该由异步任务去设置的
         # 2-1：如果是取消/拒绝，就直接跳过
+        user = request.user
         if status in ["cancel", "refuse"]:
             process.status = status
             process.save()
@@ -75,6 +78,13 @@ class WorkFlowApiModelViewSet(ModelViewSet):
             # 流程实例的状态，设置为取消/拒绝
             workflow.status = status
             workflow.save()
+            # 记录日志
+            if status == "cancel":
+                content = "{}取消了步骤({})".format(user.username, process.step.name)
+            else:
+                content = "{}拒绝了步骤({})".format(user.username, process.step.name)
+            WorkFlowLog.objects.create(workflow_id=pk, user=user, category="error", content=content)
+
             # 返回取消/拒绝成功的消息
             content = {
                 "status": True,
@@ -87,8 +97,17 @@ class WorkFlowApiModelViewSet(ModelViewSet):
             process.status = status
             process.save()
             print("执行当前process的核心任务：", workflow, process)
-            success, result = process.core_task()
-            print("执行核心任务返回结果：", success, result)
+
+            # 记录日志
+            content = "{}通过了步骤({})".format(user.username, process.step.name)
+            WorkFlowLog.objects.create(workflow_id=pk, user=user, category="success", content=content)
+
+            # 执行过程的核心任务
+            # success, result, output = process.core_task()
+            # print("{}执行核心任务返回结果：".format(process), success, result, output)
+
+            # 异步执行
+            do_process_core_task.delay(process)
 
             # 操作成功
             content = {
@@ -114,4 +133,10 @@ class WorkFlowApiModelViewSet(ModelViewSet):
             }
             return Response(data=content, status=400)
         else:
+            # 删除流程
+            user = request.user.username
+            # 设置完成
+            content = "删除流程"
+            category = "error"
+            WorkFlowLog.objects.create(workflow_id=instance.id, user=user, category=category, content=content)
             return super().destroy(request, *args, **kwargs)

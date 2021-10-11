@@ -15,6 +15,7 @@ from django.db import models
 from codelieche.models import BaseModel
 from workflow.models.workflow import WorkFlow
 from workflow.models.step import Step
+from workflow.models.log import WorkFlowLog
 
 
 class Process(BaseModel):
@@ -28,6 +29,8 @@ class Process(BaseModel):
     status = models.CharField(verbose_name="状态", blank=True, default="todo", max_length=20)
     # 当前步骤是否自动执行的：如果是，那么插件会在entry_task的时候自动进入core_task
     auto_execute = models.BooleanField(verbose_name="自动执行", blank=True, default=False)
+    # 执行时间
+    time_executed = models.DateTimeField(verbose_name="执行时间", blank=True, null=True)
 
     @property
     def plugin_obj(self):
@@ -38,6 +41,21 @@ class Process(BaseModel):
 
         # 如果插件不存在，直接出错
         return plugin
+
+    def receive_input_value(self, prev_output):
+        # 接收上一步的输出值，更新当前插件的值
+        updated = False
+        plugin_obj = self.plugin_obj
+        if prev_output and isinstance(prev_output, dict):
+            for k in plugin_obj.RECEIVE_INPUT_FIELDS:
+                if k in prev_output:
+                    setattr(plugin_obj, k, prev_output[k])
+                    if not updated:
+                        updated = True
+        # 如果更新了就需要保存一下
+        if updated:
+            plugin_obj.save()
+        return self
 
     def entry_task(self):
         # 进入这个process，可能是发短信，也可能是立刻进入下一个环节
@@ -55,7 +73,7 @@ class Process(BaseModel):
 
         # 3. 有些插件是直接进入下一个任务的
 
-    def entry_next_process(self):
+    def entry_next_process(self, prev_output=None):
         # 1. 获取实例化Plugin所需的数据
         # 1-1：下一个任务
         next_step = self.workflow.get_next_step(current=self.step)
@@ -66,13 +84,23 @@ class Process(BaseModel):
             self.workflow.save()
 
         if not next_step:
-            print(self, "没有下一个步骤了，无需执行")
+            print(self, "没有下一个步骤了，无需执行， 开始设置整个流程的状态为Done")
             # 到这里应该是要检查一下workflow的状态了，比如全部修改成done
             self.workflow.status = "done"
             self.workflow.save()
             return
         # 1-2：下一个任务插件的数据
         success, plugin_data = WorkFlow.get_plugin_data(step=next_step, data=self.workflow.data)
+
+        # 1-3: 接收上一步的输出作为输入
+        if self.step.receive_input and isinstance(prev_output, dict):
+            # 请实现更新plugin_data
+            prev_output_fields = {}
+            for k in self.plugin_obj.RECEIVE_INPUT_FIELDS:
+                if k in prev_output:
+                    prev_output_fields[k] = prev_output[k]
+            # 对插件数据进行更新: 执行到这里才算是成功接收到上一步的output数据了
+            plugin_data.update(prev_output_fields)
 
         # 2. 创建插件
         if success and isinstance(plugin_data, dict):
@@ -112,12 +140,13 @@ class Process(BaseModel):
         else:
             raise ValueError("一般不会出现这个错误")
 
-    def handle_execute_result(self, success=False, result=None):
+    def handle_execute_result(self, success=False, result=None, output=None):
         """
         当前过程设置了字段执行
         出错/成功都需要调用这个方法，会修改自己的状态，同时会修改workflow的状态
         :param success: 是否成功执行
         :param result: 出错的信息
+        :param output: 输出的结果，可作为下一步的输入
         :return:
         """
         # 1. 校验process的状态
@@ -136,7 +165,7 @@ class Process(BaseModel):
 
         # 3. 如果成功，那么就需要自动进入下一个步骤
         if success and self.auto_execute:
-            self.entry_next_process()
+            self.entry_next_process(prev_output=output)
 
     def core_task(self):
         # 进入这个process的核心任务，可能是发短信，也可能是直接通过，进入下一个环节
@@ -153,22 +182,38 @@ class Process(BaseModel):
         if self.status in plugin.CAN_EXECUTE_CORE_TASK_STATUS or (self.status == "todo" and self.auto_execute):
             if plugin.core_task_executed:
                 # print("当前插件的核心任务已经执行过了，不可执行")
-                return False, "核心任务已经执行过了，不可继续执行"
+                return False, "核心任务已经执行过了，不可继续执行", None
             else:
                 # if plugin.status not in ["todo2"]:
                 #     return False, "当前插件状态不是todo不可执行"
                 # 执行插件的核心任务：非常重要哦
-                success, msg = plugin.core_task(workflow=self.workflow, process=self, step=self.step)
+                results = plugin.core_task(workflow=self.workflow, process=self, step=self.step)
+                if len(results) == 2:
+                    success, result = results
+                    output = None
+                elif len(results) == 3:
+                    success, result, output = results
+                else:
+                    raise ValueError("插件{}执行核心任务返回的结果格式不正确".format(plugin))
+
+                # 记录执行日志:
+                if success:
+                    content = "{}:执行成功".format(self.step.name)
+                    category = "success"
+                else:
+                    content = "{}:执行失败:{}".format(self.step.name, result)
+                    category = "error"
+                WorkFlowLog.objects.create(workflow_id=self.workflow_id, category=category, content=content)
 
                 # 核心任务执行失败，应该终止和报错了
 
                 # 考虑一下，这里是否需要修改process的状态
-                return success, msg
+                return success, result, output
 
         else:
             msg = "Process:{},当前状态({})不可以执行插件的核心任务".format(self, self.status)
             print(msg)
-            return False, msg
+            return False, msg, None
 
         # 3. 有些插件是直接进入下一个任务的
 

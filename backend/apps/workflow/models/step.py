@@ -25,6 +25,8 @@ class Step(BaseModel):
     data = models.JSONField(verbose_name="插件初始化数据", blank=True, null=True)
     # 当前步骤是否自动立刻执行: 最终是很多步骤会一步一步的去执行
     auto_execute = models.BooleanField(verbose_name="自动执行", blank=True, default=False)
+    # 当前步骤是否可以从上一步中接收实例化插件的数据: 配合插件中配置的RECEIVE_INPUT_FIELDS使用
+    receive_input = models.BooleanField(verbose_name="接收输入", blank=True, default=False)
 
     @property
     def plugin_class(self):

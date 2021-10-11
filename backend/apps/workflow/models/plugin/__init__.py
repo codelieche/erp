@@ -8,12 +8,13 @@ from .do import DoCoreTaskPlugin
 from .message import MessagePlugin
 from .gitflow import GitFlowPlugin
 from .jenkins import JenkinsPlugin
+from .input import InputOutputPlugin
 
 
 # 插件列表
 plugins = [
     MySQLPlugin, ProjectCreatePlugin, ShellExecutePlugin, ApprovePlugin, DoCoreTaskPlugin, MessagePlugin,
-    GitFlowPlugin, JenkinsPlugin,
+    GitFlowPlugin, JenkinsPlugin, InputOutputPlugin
 ]
 plugins_list = []
 plugins_dict = {}

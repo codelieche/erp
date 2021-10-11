@@ -3,6 +3,7 @@
 基础插件
 """
 from django.db import models
+from django.utils import timezone
 
 from codelieche.models import BaseModel
 from workflow.models.workflow import WorkFlow
@@ -23,6 +24,7 @@ class Plugin(BaseModel):
         ("error", "出错"),
         ("refuse", "拒绝"),
         ("cancel", "取消"),
+        ("delete", "删除"),
         ("deliver", "转交"),
         ("agree", "通过"),
         ("done", "完成"),
@@ -38,12 +40,16 @@ class Plugin(BaseModel):
 
     # 能执行核心任务的process状态，一般都是agree和sucess即可
     CAN_EXECUTE_CORE_TASK_STATUS = ["agree", "success"]
+    # 接受从上一级步骤输入的字段, 当插件支持从上一个插件的核心任务返回的结果获取值时，我们可以设置这里
+    RECEIVE_INPUT_FIELDS = ()
 
     # 核心任务是否已经执行完毕
     core_task_executed = models.BooleanField(verbose_name="核心任务是否已经执行", blank=True, default=False)
     # 状态
     status = models.CharField(verbose_name="状态", max_length=20, choices=STATUS_CHOICES,
                               blank=True, default="todo")
+    time_updated = models.DateTimeField(verbose_name="更新时间", auto_now=True, blank=True)
+    time_executed = models.DateTimeField(verbose_name="执行时间", blank=True, null=True)
 
     def entry_task(self, workflow, process, step):
         """
@@ -61,14 +67,27 @@ class Plugin(BaseModel):
             process.entry_next_process()
 
     def execute_core_task(self):
+        # 执行核心任务，我们应该返回3个值：
+        # success(执行是否成功), result(执行结果的消息), output(输出给下一个步骤的数据)
         print("我是执行核心任务的函数，所有核心的操作可以放整个地方")
         raise NotImplementedError("请实现Execute Core Task方法")
 
     def core_task(self, workflow: WorkFlow, process, step):
         # 可以考虑把这个设置为通用的方法
-        success, result = self.execute_core_task()
+        results = self.execute_core_task()
+        if len(results) == 3:
+            success, result, output = results
+        elif len(results) == 2:
+            success, result = results
+            output = None
+        else:
+            raise ValueError("插件{}返回的结果格式不正确".format(self))
         # 设置以及执行了
         self.core_task_executed = True
+        now = timezone.datetime.now()
+        self.time_executed = now  # 设置执行时间
+        process.time_executed = now
+        process.save()
         if success:
             self.status = "success"
         else:
@@ -80,10 +99,10 @@ class Plugin(BaseModel):
         # 这是一个规范：如果不遵循，那么就没法自动跳入下一个步骤
         if process.auto_execute:
             # 这里会直接进入下一个步骤（成功的情况下），出错了就直接error，整个流程也就报错
-            process.handle_execute_result(success, result)
+            process.handle_execute_result(success, result, output)
 
         # 返回执行结果
-        return success, result
+        return success, result, output
 
     class Meta:
         abstract = True

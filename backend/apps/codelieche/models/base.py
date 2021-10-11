@@ -1,6 +1,8 @@
 # -*- coding:utf-8 -*-
 from django.db import models
-from django.utils.timezone import datetime
+from django.utils import timezone
+from django.contrib.contenttypes.models import ContentType
+
 from codelieche.tools.password import Cryptography
 
 
@@ -21,7 +23,7 @@ class BaseModel(models.Model):
         """
         格式化当前的时间戳，删除资源的时候会用到
         """
-        return datetime.now().strftime(fmt)
+        return timezone.datetime.now().strftime(fmt)
 
     def set_decrypt_value(self):
         # 加密存储的字段
@@ -91,6 +93,14 @@ class BaseModel(models.Model):
             # 这个直接用get是有可能报错的（比如根据一条字段，得到了2条数据），这个传入端去处理
             obj = model.objects.get(**data)
             return obj
+
+    def get_relative_object_by_model(self, app_label, model, args=None, value=None, many=False, field="pk"):
+        # 1. 先获取到model
+        ct = ContentType.objects.get(app_label=app_label, model=model)
+        model_cls = ct.model_class()
+
+        # 2. 获取对象
+        return self.get_relative_object_by_model(model=model_cls, args=args, value=value, many=many, field=field)
 
     def do_delete_action(self):
         """

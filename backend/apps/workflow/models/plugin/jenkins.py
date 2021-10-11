@@ -39,7 +39,7 @@ class JenkinsPlugin(Plugin):
         print("现在开始获取Jenkins服务信息:{}".format(self.jenkins))
         print("现在开始获取Job信息:{}".format(self.job))
         print("现在开始构建Job:{}-{}".format(self.job, self.params))
-        return True, "执行成功"
+        return True, "执行成功", None
 
     # def core_task(self, workflow: WorkFlow, process, step):
     #     # 可以考虑把这个设置为通用的方法

@@ -6,11 +6,16 @@ from .message import MessagePluginPluginModelSerializer
 from .mysql import MySQLPluginPluginModelSerializer
 from .project import ProjectCreatePluginModelSerializer
 from .shell import ShellExecutePluginModelSerializer
+from .gitflow import GitflowPluginModelSerializer
+from .jenkins import JenkinsPluginModelSerializer
+from .input import InputOutputPluginModelSerializer
 
 plugin_serailizers = [
     ApprovePluginModelSerializer, DoCoreTaskPluginModelSerializer,
     MessagePluginPluginModelSerializer, MySQLPluginPluginModelSerializer,
-    ProjectCreatePluginModelSerializer, ShellExecutePluginModelSerializer
+    ProjectCreatePluginModelSerializer, ShellExecutePluginModelSerializer,
+    GitflowPluginModelSerializer, JenkinsPluginModelSerializer,
+    InputOutputPluginModelSerializer,
 ]
 
 # 校验插件的时候需要用到的序列化

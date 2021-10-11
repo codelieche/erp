@@ -11,7 +11,7 @@ class ApprovePluginModelSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ApprovePlugin
-        fields = ("id", "users", "user", "content")
+        fields = ("id", "users", "user", "content", "status", "core_task_executed", "time_executed")
 
 
 # class ApprovePlugin(Plugin):

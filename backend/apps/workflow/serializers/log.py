@@ -12,5 +12,5 @@ class WorkflowLogModelSerializer(serializers.ModelSerializer):
     class Meta:
         model = WorkFlowLog
         fields = (
-            "id", "workflow", "category", "content"
+            "id", "workflow_id", "category", "content"
         )

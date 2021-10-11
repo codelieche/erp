@@ -11,7 +11,7 @@ from workflow.models.plugin.do import DoCoreTaskPlugin
 class DoCoreTaskPluginModelSerializer(serializers.ModelSerializer):
     class Meta:
         model = DoCoreTaskPlugin
-        fields = ("id", "auto_execute")
+        fields = ("id", "auto_execute", "status", "core_task_executed", "time_executed")
 
 
 # class DoCoreTaskPlugin(Plugin):

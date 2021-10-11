@@ -39,7 +39,7 @@ class GitFlowPlugin(Plugin):
         print("现在开始获取gitlab服务信息:{}".format(self.gitlabl))
         print("现在开始获取gitlab项目信息:{}".format(self.project))
         print("现在开始拉取代码:{}-{}".format(self.branch, self.commit))
-        return True, "执行成功"
+        return True, "执行成功", None
 
     # def core_task(self, workflow: WorkFlow, process, step):
     #     success, result = self.execute_core_task()
