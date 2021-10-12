@@ -17,11 +17,25 @@ class WorkFlowApiModelViewSet(ModelViewSet):
     queryset = WorkFlow.objects.filter(deleted=False)
     serializer_class_set = (WorkFlowModelSerializer, WorkflowInfoModelSerializer)
 
-    @action(methods=["POST"], detail=True, description="执行当前步骤的操作")
-    def action(self, request, pk=None):
+    @action(methods=["POST"], detail=False, description="执行当前步骤的操作")
+    def action(self, request):
         # 1. 获取当前的相关数据
         # 1-1. 获取到流程实例对象
-        workflow = self.get_object()
+        workflow_id = request.data.get('workflow')
+        if not workflow_id:
+            content = {
+                "status": False,
+                "message": "未传入workflow"
+            }
+            return Response(data=content, status=400)
+        workflow = WorkFlow.objects.filter(id=workflow_id, deleted=False).first()
+
+        if not workflow:
+            content = {
+                "status": False,
+                "message": "传入的workflow不存在"
+            }
+            return Response(data=content, status=400)
 
         # 1-2：获取process
         # 1-2-1：获取到process的it，如果不是int那后面是会报错的
@@ -33,7 +47,7 @@ class WorkFlowApiModelViewSet(ModelViewSet):
             }
             return Response(data=content, status=400)
         # 1-2-2：根据id得到流程对象
-        process = Process.objects.filter(id=process_id, workflow_id=pk).first()
+        process = Process.objects.filter(id=process_id, workflow_id=workflow.id).first()
         if not process:
             content = {
                 "status": False,
@@ -83,7 +97,7 @@ class WorkFlowApiModelViewSet(ModelViewSet):
                 content = "{}取消了步骤({})".format(user.username, process.step.name)
             else:
                 content = "{}拒绝了步骤({})".format(user.username, process.step.name)
-            WorkFlowLog.objects.create(workflow_id=pk, user=user, category="error", content=content)
+            WorkFlowLog.objects.create(workflow_id=workflow.id, user=user, category="error", content=content)
 
             # 返回取消/拒绝成功的消息
             content = {
@@ -100,7 +114,7 @@ class WorkFlowApiModelViewSet(ModelViewSet):
 
             # 记录日志
             content = "{}通过了步骤({})".format(user.username, process.step.name)
-            WorkFlowLog.objects.create(workflow_id=pk, user=user, category="success", content=content)
+            WorkFlowLog.objects.create(workflow_id=workflow.id, user=user, category="success", content=content)
 
             # 执行过程的核心任务
             # success, result, output = process.core_task()

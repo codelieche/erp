@@ -69,7 +69,9 @@ class Process(BaseModel):
 
         # 2. 执行插件的entry任务
         # 当process.auto_execute，就会再entry_task中自动进入core_task, 这算是个约定，插件需要这样遵循
-        plugin.entry_task(workflow=self.workflow, process=self, step=self.step)
+        results = plugin.entry_task(workflow=self.workflow, process=self, step=self.step)
+
+        return results
 
         # 3. 有些插件是直接进入下一个任务的
 
@@ -135,7 +137,7 @@ class Process(BaseModel):
 
             # print("实例化下一个process成功：", process)
             # 触发进入这个流程的事件
-            process.entry_task()  # 执行进入流程相关的事件
+            return process.entry_task()  # 执行进入流程相关的事件
 
         else:
             raise ValueError("一般不会出现这个错误")

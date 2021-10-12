@@ -61,10 +61,10 @@ class Plugin(BaseModel):
         """
         # 特殊情况，请自行覆盖本方法
         if process.auto_execute:
-            self.core_task(workflow=workflow, process=process, step=step)
+            return self.core_task(workflow=workflow, process=process, step=step)
         else:
             # 这种情况一般是结合后续步骤的do_core_task_plugin来结合使用
-            process.entry_next_process()
+            return process.entry_next_process()
 
     def execute_core_task(self):
         # 执行核心任务，我们应该返回3个值：

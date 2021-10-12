@@ -10,6 +10,7 @@ from workflow.models.workflow import WorkFlow
 from workflow.models.process import Process
 from workflow.models.log import WorkFlowLog
 from workflow.serializers.process import ProcessInfoModelSerializer
+from workflow.tasks.process import do_process_entry_task
 
 
 class WorkFlowModelSerializer(serializers.ModelSerializer):
@@ -122,7 +123,9 @@ class WorkFlowModelSerializer(serializers.ModelSerializer):
 
             # print("实例化第一个process成功：", process)
             # 触发进入这个流程的事件
-            process.entry_task()   # 执行进入流程相关的事件
+            # process.entry_task()   # 执行进入流程相关的事件
+            # 异步执行进入事件
+            do_process_entry_task.delay(process)
 
         else:
             raise serializers.ValidationError("一般不会出现这个错误")
@@ -142,12 +145,13 @@ class WorkFlowModelSerializer(serializers.ModelSerializer):
 class WorkflowInfoModelSerializer(serializers.ModelSerializer):
 
     process_set = ProcessInfoModelSerializer(many=True, read_only=True, allow_null=True)
+    current_process = ProcessInfoModelSerializer(many=False, read_only=True, allow_null=True)
 
     class Meta:
         model = WorkFlow
         fields = (
             "id", "flow", "title",
             "status", "status_code",
-            "user", "current", "data", 'process_set',
+            "user", "current", "data", 'process_set', 'current_process',
             "time_added", "time_finished",
         )

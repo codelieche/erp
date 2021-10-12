@@ -94,7 +94,7 @@ class BaseModel(models.Model):
             obj = model.objects.get(**data)
             return obj
 
-    def get_relative_object_by_model(self, app_label, model, args=None, value=None, many=False, field="pk"):
+    def get_relative_object_by_content_type(self, app_label, model, args=None, value=None, many=False, field="pk"):
         # 1. 先获取到model
         ct = ContentType.objects.get(app_label=app_label, model=model)
         model_cls = ct.model_class()

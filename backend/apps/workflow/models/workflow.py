@@ -116,6 +116,14 @@ class WorkFlow(BaseModel):
         # 返回插件数据
         return True, plugin_data
 
+    @property
+    def current_process(self):
+        # 当前的process对象
+        if self.current:
+            return self.get_relative_object_by_content_type(app_label="workflow", model="process", value=self.current)
+        else:
+            return None
+
     def save(self, force_insert=False, force_update=False, using=None,
              update_fields=None):
         # 校验status
@@ -127,7 +135,7 @@ class WorkFlow(BaseModel):
             self.status_code = self.STATUS_CODE_DICT[self.status]
 
         # 如果状态是：cancel、delete、done就需要设置一下结束时间
-        if self.status in ["cancel", "delete", "done"]:
+        if self.status in ["error", "cancel", "delete", "done"]:
             self.time_finished = timezone.datetime.now()
             # 设置完成
             # if self.status == "done":

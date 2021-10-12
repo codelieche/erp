@@ -7,7 +7,8 @@ from workflow.models.process import Process
 @shared_task
 def do_process_entry_task(process):
     # 直接执行entry_task
-    process.entry_task()
+    results = process.entry_task()
+    print("Process entry task执行结果：{}-{}".format(process, results))
 
 
 @shared_task
