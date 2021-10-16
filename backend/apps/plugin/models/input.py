@@ -26,7 +26,7 @@ class InputOutputPlugin(Plugin):
     # 从配置的Jenkins中选择服务：我们可以从中获取到url、username、password等所需的信息
     value = models.CharField(verbose_name="输入值", max_length=1024, blank=True, null=True)
 
-    def execute_core_task(self, workflow=None):
+    def execute_core_task(self, work=None):
         print("执行InputPlugin(ID:{})核心任务：{}".format(self.id, self.value))
         for i in range(10):
             print("执行输入输出插件核心任务：{}".format(i + 1))

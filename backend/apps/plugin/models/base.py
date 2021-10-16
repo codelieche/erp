@@ -50,30 +50,30 @@ class Plugin(BaseModel):
     time_updated = models.DateTimeField(verbose_name="更新时间", auto_now=True, blank=True)
     time_executed = models.DateTimeField(verbose_name="执行时间", blank=True, null=True)
 
-    def entry_task(self, workflow, process, step):
+    def entry_task(self, work, process, step):
         """
         进入任务
-        :param workflow: 工作流实例
+        :param work: 工作流实例
         :param process: 工作流的过程
         :param step: 工作流的步骤
         :return:
         """
         # 特殊情况，请自行覆盖本方法
         if process.auto_execute:
-            return self.core_task(workflow=workflow, process=process, step=step)
+            return self.core_task(work=work, process=process, step=step)
         else:
             # 这种情况一般是结合后续步骤的do_core_task_plugin来结合使用
             return process.entry_next_process()
 
-    def execute_core_task(self, workflow=None):
+    def execute_core_task(self, work=None):
         # 执行核心任务，我们应该返回3个值：
         # success(执行是否成功), result(执行结果的消息), output(输出给下一个步骤的数据)
         print("我是执行核心任务的函数，所有核心的操作可以放整个地方")
         raise NotImplementedError("请实现Execute Core Task方法")
 
-    def core_task(self, workflow, process, step):
+    def core_task(self, work, process, step):
         # 可以考虑把这个设置为通用的方法
-        results = self.execute_core_task(workflow=workflow)
+        results = self.execute_core_task(work=work)
         if len(results) == 3:
             success, result, output = results
         elif len(results) == 2:

@@ -20,20 +20,20 @@ class ShellExecutePlugin(Plugin):
 
     command = models.TextField(verbose_name="执行的shell命令")
 
-    # def entry_task(self, workflow, process, step):
+    # def entry_task(self, work, process, step):
     #     if process.auto_execute:
     #         print("进入shell流程，我们直接执行当前这个任务：{}".format(self.command))
-    #         self.core_task(workflow=workflow, process=process, step=step)
+    #         self.core_task(work=work, process=process, step=step)
     #     else:
     #         print("进入shell流程，我们直接进入下一步")
     #         process.entry_next_process()
 
-    def execute_core_task(self, workflow=None):
+    def execute_core_task(self, work=None):
         print("我现在开始执行shell的任务：{}".format(self.command))
         return True, "执行成功", None
 
-    # def core_task(self, workflow: WorkFlow, process, step):
-    #     print("workflow:{},开始执行shell命令:{}".format(workflow, self.command))
+    # def core_task(self, work: Work, process, step):
+    #     print("work:{},开始执行shell命令:{}".format(work, self.command))
     #     success, result = self.execute_core_task()
     #     self.core_task_executed = True
     #

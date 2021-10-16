@@ -1,17 +1,17 @@
 # -*- coding:utf-8 -*-
 from codelieche.views.viewset import ReadOnlyViewSet
 
-from workflow.models.log import WorkFlowLog
-from workflow.serializers.log import WorkflowLogModelSerializer
+from workflow.models.log import WorkLog
+from workflow.serializers.log import WorkLogModelSerializer
 
 
-class WorkflowLogApiViewSet(ReadOnlyViewSet):
+class WorkLogApiViewSet(ReadOnlyViewSet):
     """
-    Workflow Log Api View Set
+    work Log Api View Set
     """
-    queryset = WorkFlowLog.objects.filter(deleted=False)
-    serializer_class_set = (WorkflowLogModelSerializer,)
+    queryset = WorkLog.objects.filter(deleted=False)
+    serializer_class_set = (WorkLogModelSerializer,)
 
     search_fields = ("content",)
-    filter_fields = ("category", "workflow_id")
+    filter_fields = ("category", "work_id")
 

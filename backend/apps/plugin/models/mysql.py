@@ -5,7 +5,7 @@
 from django.db import models
 
 from .base import Plugin
-# from workflow.models.workflow import WorkFlow
+# from workflow.models.work import Work
 
 
 class MySQLPlugin(Plugin):
@@ -23,22 +23,22 @@ class MySQLPlugin(Plugin):
     sql = models.TextField(verbose_name="SQL语句")
     database = models.CharField(verbose_name="数据库", max_length=128, blank=True, default=True)
 
-    # def entry_task(self, workflow, process, step):
+    # def entry_task(self, work, process, step):
     #     if process.auto_execute:
-    #         self.core_task(workflow=workflow, process=process, step=step)
+    #         self.core_task(work=work, process=process, step=step)
     #     else:
     #         print("进入Mysql流程，我们直接进入下一步")
     #         # 这种情况一般是结合后续步骤的do_core_task_plugin来结合使用
     #         process.entry_next_process()
 
-    def execute_core_task(self, workflow=None):
+    def execute_core_task(self, work=None):
         print("模拟执行MySQL插件的核心任务：当前sql为：{}".format(self.sql))
         for i in range(10):
             print("模拟执行SQL:{}".format(i + 1))
         return True, "执行成功", None
 
-    # def core_task(self, workflow: WorkFlow, process, step):
-    #     print("模拟执行MySQL插件的核心任务，当前workfow：{}".format(workflow))
+    # def core_task(self, work: Work, process, step):
+    #     print("模拟执行MySQL插件的核心任务，当前workfow：{}".format(work))
     #     success, result = self.execute_core_task()
     #     # 设置为已经执行了
     #     self.core_task_executed = True

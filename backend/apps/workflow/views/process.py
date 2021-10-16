@@ -11,5 +11,5 @@ class ProcessApiModelViewSet(ModelViewSet):
     queryset = Process.objects.filter(deleted=False)
     serializer_class_set = (ProcessModelSerializer, ProcessInfoModelSerializer)
 
-    search_fields = ("workflow__title",)
-    filter_fields = ("flow", "workflow", "status")
+    search_fields = ("work__title",)
+    filter_fields = ("flow", "work", "status")

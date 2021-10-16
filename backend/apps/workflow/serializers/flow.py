@@ -137,7 +137,8 @@ class FlowModelSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Flow
-        fields = ("id", "code", "name", "user", "steps")
+        fields = ("id", "code", "name", "user_id", "steps")
+        read_only_fields = ('user_id',)
 
 
 class FlowSimpleModelSerializer(serializers.ModelSerializer):

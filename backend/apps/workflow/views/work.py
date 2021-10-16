@@ -3,11 +3,11 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from codelieche.views.viewset import ModelViewSet
-from work.models.work import Work
-from work.models.process import Process
-from work.models.log import workLog
-from work.serializers.work import workModelSerializer, workInfoModelSerializer
-from work.tasks.process import do_process_core_task
+from workflow.models.work import Work
+from workflow.models.process import Process
+from workflow.models.log import WorkLog
+from workflow.serializers.work import workModelSerializer, workInfoModelSerializer
+from workflow.tasks.process import do_process_core_task
 
 
 class workApiModelViewSet(ModelViewSet):
@@ -97,7 +97,7 @@ class workApiModelViewSet(ModelViewSet):
                 content = "{}取消了步骤({})".format(user.username, process.step.name)
             else:
                 content = "{}拒绝了步骤({})".format(user.username, process.step.name)
-            workLog.objects.create(work_id=work.id, user=user, category="error", content=content)
+            WorkLog.objects.create(work_id=work.id, user=user, category="error", content=content)
 
             # 返回取消/拒绝成功的消息
             content = {
@@ -114,14 +114,14 @@ class workApiModelViewSet(ModelViewSet):
 
             # 记录日志
             content = "{}通过了步骤({})".format(user.username, process.step.name)
-            workLog.objects.create(work_id=work.id, user=user, category="success", content=content)
+            WorkLog.objects.create(work_id=work.id, user=user, category="success", content=content)
 
             # 执行过程的核心任务
-            # success, result, output = process.core_task()
-            # print("{}执行核心任务返回结果：".format(process), success, result, output)
+            success, result, output = process.core_task()
+            print("{}执行核心任务返回结果：".format(process), success, result, output)
 
             # 异步执行
-            do_process_core_task.delay(process)
+            # do_process_core_task.delay(process)
 
             # 操作成功
             content = {
@@ -152,5 +152,5 @@ class workApiModelViewSet(ModelViewSet):
             # 设置完成
             content = "删除流程"
             category = "error"
-            workLog.objects.create(work_id=instance.id, user=user, category=category, content=content)
+            WorkLog.objects.create(work_id=instance.id, user=user, category=category, content=content)
             return super().destroy(request, *args, **kwargs)

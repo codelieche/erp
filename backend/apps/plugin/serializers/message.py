@@ -25,8 +25,8 @@ class MessagePluginPluginModelSerializer(serializers.ModelSerializer):
 #
 #     users = models.ManyToManyField(verbose_name="接收用户", to=User, blank=True)
 #
-#     def core_task(self, workfow: WorkFlow):
-#         print("Workflow:{}, 开始发送消息给{}".format(workfow, self.users))
+#     def core_task(self, workfow: Work):
+#         print("work:{}, 开始发送消息给{}".format(workfow, self.users))
 #         return True, "执行成功"
 #
 #     class Meta:

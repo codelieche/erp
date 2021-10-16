@@ -24,23 +24,40 @@ class ApprovePlugin(Plugin):
     user = models.CharField(verbose_name="审批用户", max_length=128, blank=True, null=True)
     content = models.CharField(verbose_name="审批内容", blank=True, null=True, max_length=256)
 
-    def entry_task(self, workflow, process, step):
+    def entry_task(self, work, process, step):
         # 我需要有自己的entry_task，不可以自动跳入下一个步骤
-        print("现在开始提醒用户，当前流程需要你审批咯:{}-{}".format(workflow, process))
+        print("现在开始提醒用户，当前流程需要你审批咯:{}-{}".format(work, process))
 
-    def execute_core_task(self, workflow=None):
+        # 1. 获取到users的数据，这里面的数据是id或者邮箱的列表
+        if not (isinstance(self.users, list) and len(self.users) > 0):
+            # 直接报错
+            result = "审批用户未配置，不可审批"
+            # 记录过程的结果
+            process.save_result(success=False, content=result)
+            return process.handle_execute_result(success=False, result=result, output=None)
+        else:
+            title = "流程审批"
+            content = f"【流程】\t{work.flow.name}\n【标题】\t{work.title}" \
+                      f"\n【步骤】\t{step.name}\n【用户】\t{work.user}\n" \
+                      f"【时间】\t{work.fmt_time_to_beijing(work.time_added)}\n" \
+                      f"\n需要您审批!"
+
+            # send_email(to=self.users, title=title, content=content)
+            print(self.users, title, content)
+
+    def execute_core_task(self, work=None):
         print("模拟执行审批核心任务：{}".format(self.id))
         return True, "执行结果", None
 
     # 状态：cancel, error, success
-    def core_task(self, workflow, process, step):
+    def core_task(self, work, process, step):
         if self.core_task_executed:
             # 这里考虑是返回True，暂时让只要重复触发核心任务就报错
             return False, "核心任务已经执行过了，不可继续执行", None
 
         if process.status in ["agree", "success"]:
             if self.status not in ['todo']:
-                return False, "当前插件不是todo不可执行核心任务:{}-{}-{}".format(workflow.id, process.id, self.id), None
+                return False, "当前插件不是todo不可执行核心任务:{}-{}-{}".format(work.id, process.id, self.id), None
             else:
                 # 把状态设置为doing，这样可防止重复执行
                 self.status = "doing"
@@ -69,8 +86,8 @@ class ApprovePlugin(Plugin):
                     process.status = "error"
                     process.save()
                     # 流程保存错误状态
-                    workflow.status = "error"
-                    workflow.save()
+                    work.status = "error"
+                    work.save()
                     # 执行出错了
                     return False, "执行出错：{}".format(result), output
         else:

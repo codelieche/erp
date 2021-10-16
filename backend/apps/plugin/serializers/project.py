@@ -27,7 +27,7 @@ class ProjectCreatePluginModelSerializer(serializers.ModelSerializer):
 #     code = models.SlugField(verbose_name="项目Code", max_length=128)
 #     name = models.CharField(verbose_name="项目名称", max_length=128)
 #
-#     def core_task(self, workfow: WorkFlow):
+#     def core_task(self, workfow: Work):
 #         print("执行workfow:{}的核心任务".format(workfow))
 #         return True, "执行成功"
 #

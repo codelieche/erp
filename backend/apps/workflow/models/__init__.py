@@ -4,3 +4,5 @@ from .step import Step
 from .work import Work
 from .process import Process
 from .log import WorkLog
+from .result import ProcessResult
+

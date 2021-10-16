@@ -6,7 +6,7 @@
 from django.db import models
 
 from .base import Plugin
-# from workflow.models.workflow import WorkFlow
+# from workflow.models.work import Work
 
 
 class JenkinsPlugin(Plugin):
@@ -26,22 +26,22 @@ class JenkinsPlugin(Plugin):
     params = models.JSONField(verbose_name="构建参数", blank=True, null=True)
     build_id = models.IntegerField(verbose_name="构建ID", blank=True, null=True)
 
-    # def entry_task(self, workflow, process, step):
+    # def entry_task(self, work, process, step):
     #     print("进入Jenkins插件：")
     #     if process.auto_execute:
-    #         self.core_task(workflow=workflow, process=process, step=step)
+    #         self.core_task(work=work, process=process, step=step)
     #     else:
     #         # 这种情况一般是结合后续步骤的do_core_task_plugin来结合使用
     #         process.entry_next_process()
 
-    def execute_core_task(self, workflow=None):
+    def execute_core_task(self, work=None):
         print("执行Jenkins核心任务：{}-{}-{}".format(self.jenkins, self.job, self.params))
         print("现在开始获取Jenkins服务信息:{}".format(self.jenkins))
         print("现在开始获取Job信息:{}".format(self.job))
         print("现在开始构建Job:{}-{}".format(self.job, self.params))
         return True, "执行成功", None
 
-    # def core_task(self, workflow: WorkFlow, process, step):
+    # def core_task(self, work: Work, process, step):
     #     # 可以考虑把这个设置为通用的方法
     #     success, result = self.execute_core_task()
     #     # 设置以及执行了

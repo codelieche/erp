@@ -25,22 +25,22 @@ class GitFlowPlugin(Plugin):
     branch = models.CharField(verbose_name="代码分支", max_length=128)
     commit = models.CharField(verbose_name="提交ID", blank=True, null=True, max_length=128)
 
-    # def entry_task(self, workflow, process, step):
+    # def entry_task(self, work, process, step):
     #     print("进入Gitflow插件：")
     #     if process.auto_execute:
-    #         self.core_task(workflow=workflow, process=process, step=step)
+    #         self.core_task(work=work, process=process, step=step)
     #     else:
     #         # 这种情况一般是结合后续步骤的do_core_task_plugin来结合使用
     #         process.entry_next_process()
 
-    def execute_core_task(self, workflow=None):
+    def execute_core_task(self, work=None):
         print("执行GitFlow核心任务：branch:{}-{}".format(self.branch, self.commit))
         print("现在开始获取gitlab服务信息:{}".format(self.gitlabl))
         print("现在开始获取gitlab项目信息:{}".format(self.project))
         print("现在开始拉取代码:{}-{}".format(self.branch, self.commit))
         return True, "执行成功", None
 
-    # def core_task(self, workflow: WorkFlow, process, step):
+    # def core_task(self, work: Work, process, step):
     #     success, result = self.execute_core_task()
     #     # 设置以及执行了
     #     self.core_task_executed = True

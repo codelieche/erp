@@ -16,6 +16,7 @@ from codelieche.models import BaseModel
 from workflow.models.work import Work
 from workflow.models.step import Step
 from workflow.models.log import WorkLog
+from workflow.models.result import ProcessResult
 
 
 class Process(BaseModel):
@@ -257,6 +258,16 @@ class Process(BaseModel):
             return False, msg, None
 
         # 3. 有些插件是直接进入下一个任务的
+
+    def save_result(self, success=False, content=""):
+        """
+        保存结果: 注意我们一个Process只保存一次结果
+        """
+        result, created = ProcessResult.objects.get_or_create(process_id=self.id)
+        result.success = success
+        result.content = content
+        result.save()
+        return result
 
     class Meta:
         verbose_name = "过程"

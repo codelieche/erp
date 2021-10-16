@@ -8,9 +8,9 @@ from plugin.serializers import plugin_serializers_mapping
 from workflow.models.flow import Flow
 from workflow.models.work import Work
 from workflow.models.process import Process
-from workflow.models.log import workLog
+from workflow.models.log import WorkLog
 from workflow.serializers.process import ProcessInfoModelSerializer
-from work.tasks.process import do_process_entry_task
+from workflow.tasks.process import do_process_entry_task
 
 
 class workModelSerializer(serializers.ModelSerializer):
@@ -99,7 +99,7 @@ class workModelSerializer(serializers.ModelSerializer):
 
         # 记录日志：创建成功
         content = "{}创建流程成功".format(user.username)
-        workLog.objects.create(work_id=instance.id, user=user.username, category="info", content=content)
+        WorkLog.objects.create(work_id=instance.id, user=user.username, category="info", content=content)
 
         # 3. 初始化第一个步骤的process
         # 3-1: 获取到step
@@ -130,9 +130,9 @@ class workModelSerializer(serializers.ModelSerializer):
 
             # print("实例化第一个process成功：", process)
             # 触发进入这个流程的事件
-            # process.entry_task()   # 执行进入流程相关的事件
+            process.entry_task()   # 执行进入流程相关的事件
             # 异步执行进入事件
-            do_process_entry_task.delay(process)
+            # do_process_entry_task.delay(process)
 
         else:
             raise serializers.ValidationError("一般不会出现这个错误")
@@ -142,9 +142,9 @@ class workModelSerializer(serializers.ModelSerializer):
     class Meta:
         model = Work
         fields = (
-            "id", "flow", "title",
+            "id", "flow_id", "title",
             "status", "status_code",
-            "user", "current", "data",
+            "user_id", "current", "data",
             "time_added", "time_finished",
         )
 

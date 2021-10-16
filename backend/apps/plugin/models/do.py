@@ -18,27 +18,27 @@ class DoCoreTaskPlugin(Plugin):
         "name": "执行核心任务插件",
         "description": "执行核心任务的插件"
     }
-    # 能执行核心任务的process状态，一般都是agree和sucess即可
+    # 能执行核心任务的process状态，一般都是agree和success即可
     CAN_EXECUTE_CORE_TASK_STATUS = ["agree", "success"]
 
     # 执行任务可以是自动执行也可以是手动执行
     auto_execute = models.BooleanField(verbose_name="自动执行", blank=True, default=False)
 
-    def entry_task(self, workflow, process, step):
+    def entry_task(self, work, process, step):
         # 我也是使用自己的entry_task，而不是通用的entry_task
         print("进入do_core_task流程，如果是自动执行的，那么我们就执行核心任务")
         # process.entry_next_process()
         if self.auto_execute:
-            self.core_task(workflow=workflow, process=process, step=step)
+            self.core_task(work=work, process=process, step=step)
 
-    def core_task(self, workflow, process, step):
+    def core_task(self, work, process, step):
         # 统一在proces中就判断一下是否已经执行了，这里就无需判断了
         # if self.core_task_executed:
         #     # 这里考虑是返回True，暂时让只要重复触发核心任务就报错
         #     return False, "核心任务已经执行过了，不可继续执行"
 
-        if self.status not in ['todo', "agree", "sucess"]:
-            return False, "当前插件不是todo不可执行核心任务:{}-{}-{}".format(workflow.id, process.id, self.id), None
+        if self.status not in ['todo', "agree", "success"]:
+            return False, "当前插件不是todo不可执行核心任务:{}-{}-{}".format(work.id, process.id, self.id), None
         else:
             # 把状态设置为doing，这样可防止重复执行
             self.status = "doing"
@@ -47,7 +47,7 @@ class DoCoreTaskPlugin(Plugin):
         # 获取Flow的所有步骤，由后向前执行其核心任务，每个插件有个核心任务的开关，执行完的就无需执行，未执行的就执行一下
         # 遍历当前流程所有的process，执行其核心task
         # 这里依然使用正序的方式来执行，开始是考虑用倒序的方式执行
-        process_list = workflow.process_set.filter(deleted=False).order_by("id")
+        process_list = work.process_set.filter(deleted=False).order_by("id")
 
         # 上一步的输出, 上一个步骤的输出数据
         prev_output = None
@@ -67,10 +67,12 @@ class DoCoreTaskPlugin(Plugin):
                         process_i.receive_input_value(prev_output=prev_output)
 
                     # 执行当前process的核心任务
-                    sucess, result, output = process_i.core_task()
-                    print("process_i.core_task:", process_i, sucess, result, output)
+                    success, result, output = process_i.core_task()
+                    # 保存执行的结果
+                    process_i.save_result(success=success, content=result)
+                    print("process_i.core_task:", process_i, success, result, output)
                     prev_output = output
-                    if sucess:
+                    if success:
                         # 执行成功, 如果下一个流程是可接收input的，那么需要把output传递给下一个插件
                         pass
                     else:
@@ -85,8 +87,8 @@ class DoCoreTaskPlugin(Plugin):
                         self.time_executed = now
                         self.save()
                         # 设置流程的状态为失败
-                        workflow.status = "error"
-                        workflow.save()
+                        work.status = "error"
+                        work.save()
                         return False, msg, None
             else:
                 continue
@@ -104,7 +106,7 @@ class DoCoreTaskPlugin(Plugin):
         # 进入流程的下一个步骤
         process.entry_next_process()
 
-        print("执行workfow.doCoreTask{}的核心任务成功".format(workflow))
+        print("执行workfow.doCoreTask{}的核心任务成功".format(work))
         return True, "执行成功", None
 
     class Meta:

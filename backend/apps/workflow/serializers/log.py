@@ -1,16 +1,16 @@
 # -*- coding:utf-8 -*-
 from rest_framework import serializers
 
-from workflow.models.log import WorkFlowLog
+from workflow.models.log import WorkLog
 
 
-class WorkflowLogModelSerializer(serializers.ModelSerializer):
+class WorkLogModelSerializer(serializers.ModelSerializer):
     """
-    Workflow Log Model Serializer
+    work Log Model Serializer
     """
 
     class Meta:
-        model = WorkFlowLog
+        model = WorkLog
         fields = (
-            "id", "workflow_id", "category", "content"
+            "id", "work_id", "category", "content"
         )

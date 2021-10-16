@@ -26,8 +26,8 @@ class ShellExecutePluginModelSerializer(serializers.ModelSerializer):
 #
 #     command = models.TextField(verbose_name="执行的shell命令")
 #
-#     def core_task(self, workfow: WorkFlow):
-#         print("workflow:{},开始执行shell命令:{}".format(workfow, self.command))
+#     def core_task(self, workfow: Work):
+#         print("work:{},开始执行shell命令:{}".format(workfow, self.command))
 #         return True, "执行成功"
 #
 #     class Meta:

@@ -7,7 +7,7 @@
 from django.db import models
 
 from .base import Plugin
-# from workflow.models.workflow import WorkFlow
+# from workflow.models.work import Work
 
 
 class ProjectCreatePlugin(Plugin):
@@ -23,16 +23,16 @@ class ProjectCreatePlugin(Plugin):
     code = models.SlugField(verbose_name="项目Code", max_length=128)
     name = models.CharField(verbose_name="项目名称", max_length=128)
 
-    # def entry_task(self, workflow, process, step):
+    # def entry_task(self, work, process, step):
     #     print("进入Mysql流程，我们直接进入下一步")
     #     process.entry_next_process()
 
-    def execute_core_task(self, workflow=None):
+    def execute_core_task(self, work=None):
         print("执行项目插件的核心任务")
         return True, "执行成功", None
 
-    # def core_task(self, workflow: WorkFlow, process, step):
-    #     print("执行workfow:{}的核心任务".format(workflow))
+    # def core_task(self, work: Work, process, step):
+    #     print("执行workfow:{}的核心任务".format(work))
     #     return True, "执行成功"
 
     class Meta:

@@ -30,8 +30,8 @@ class ApprovePluginModelSerializer(serializers.ModelSerializer):
 #     content = models.CharField(verbose_name="审批内容", blank=True, null=True, max_length=256)
 #
 #     # 状态：cancel, error, success
-#     def core_task(self, workfow: WorkFlow):
-#         print("workflow:{}开始执行审批任务".format(workfow))
+#     def core_task(self, workfow: Work):
+#         print("work:{}开始执行审批任务".format(workfow))
 #         return True, "执行成功"
 #
 #     class Meta:
