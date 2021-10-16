@@ -13,24 +13,57 @@ process的设计：
 from django.db import models
 
 from codelieche.models import BaseModel
-from workflow.models.workflow import WorkFlow
+from workflow.models.work import Work
 from workflow.models.step import Step
-from workflow.models.log import WorkFlowLog
+from workflow.models.log import WorkLog
 
 
 class Process(BaseModel):
     """
     流程中的过程
     """
-    flow = models.IntegerField(verbose_name="流程", blank=True, null=True)
-    workflow = models.ForeignKey(verbose_name="流程实例", to=WorkFlow, blank=True, on_delete=models.CASCADE)
-    step = models.ForeignKey(verbose_name="步骤", to=Step, blank=True, on_delete=models.CASCADE)
-    plugin_id = models.IntegerField(verbose_name="插件实例的ID")
+    flow_id = models.IntegerField(verbose_name="流程", blank=True, null=True)
+    work_id = models.IntegerField(verbose_name="流程实例")
+    step_id = models.IntegerField(verbose_name="步骤")
+    plugin_id = models.IntegerField(verbose_name="插件实例的ID", blank=True, null=True)
     status = models.CharField(verbose_name="状态", blank=True, default="todo", max_length=20)
     # 当前步骤是否自动执行的：如果是，那么插件会在entry_task的时候自动进入core_task
     auto_execute = models.BooleanField(verbose_name="自动执行", blank=True, default=False)
     # 执行时间
     time_executed = models.DateTimeField(verbose_name="执行时间", blank=True, null=True)
+
+    @property
+    def flow(self):
+        if not self.flow_id:
+            raise ValueError("未配置流程:Process ID: {}".format(self.id))
+        else:
+            return self.get_relative_object_by_content_type(
+                app_label="workflow", model="flow", value=self.flow_id
+            )
+
+    @property
+    def work(self):
+        if not self.work_id:
+            raise ValueError("未配置作业流程:Process ID: {}".format(self.id))
+        else:
+            return self.get_relative_object_by_model(model=Work, value=self.work_id)
+
+    @property
+    def step(self):
+        if not self.step_id:
+            raise ValueError("未配置步骤:Process ID: {}".format(self.id))
+        else:
+            return self.get_relative_object_by_model(model=Step, value=self.step_id)
+
+    @property
+    def result(self):
+        try:
+            result = self.get_relative_object_by_content_type(
+                app_label="workflow", model="processresult", field="process_id", value=self.id, many=True).first()
+            return result
+        except Exception:
+            # 有可能是还未设置结果呢
+            return None
 
     @property
     def plugin_obj(self):
@@ -69,7 +102,7 @@ class Process(BaseModel):
 
         # 2. 执行插件的entry任务
         # 当process.auto_execute，就会再entry_task中自动进入core_task, 这算是个约定，插件需要这样遵循
-        results = plugin.entry_task(workflow=self.workflow, process=self, step=self.step)
+        results = plugin.entry_task(work=self.work, process=self, step=self.step)
 
         return results
 
@@ -78,21 +111,25 @@ class Process(BaseModel):
     def entry_next_process(self, prev_output=None):
         # 1. 获取实例化Plugin所需的数据
         # 1-1：下一个任务
-        next_step = self.workflow.get_next_step(current=self.step)
+        next_step = self.work.get_next_step(current=self.step)
+        work = self.work
 
         # 修改一下状态
-        if self.workflow.status == "todo":
-            self.workflow.status = "doing"
-            self.workflow.save()
+        if work.status == "todo":
+            work.status = "doing"
+            work.save()
 
         if not next_step:
             print(self, "没有下一个步骤了，无需执行， 开始设置整个流程的状态为Done")
-            # 到这里应该是要检查一下workflow的状态了，比如全部修改成done
-            self.workflow.status = "done"
-            self.workflow.save()
+            # 到这里应该是要检查一下work的状态了，比如全部修改成done
+            work.status = "done"
+            work.save()
+
+            # 发送完成消息：发送提醒
+            work.send_message(category="done")
             return
         # 1-2：下一个任务插件的数据
-        success, plugin_data = WorkFlow.get_plugin_data(step=next_step, data=self.workflow.data)
+        success, plugin_data = Work.get_plugin_data(step=next_step, data=self.work.data)
 
         # 1-3: 接收上一步的输出作为输入
         if self.step.receive_input and isinstance(prev_output, dict):
@@ -120,14 +157,14 @@ class Process(BaseModel):
 
             # 3. 实例化下一个process
             process = Process.objects.create(
-                flow=self.flow, workflow=self.workflow,
-                step=next_step, plugin_id=plugin.id, auto_execute=next_step.auto_execute,
+                flow_id=self.flow_id, work_id=self.work_id,
+                step_id=next_step.id, plugin_id=plugin.id, auto_execute=next_step.auto_execute,
             )
 
-            # 把workflow的当前process修改一下
-            self.workflow.current = process.id
+            # 把work的当前process修改一下
+            work.current = process.id
             # 记得保存一下
-            self.workflow.save()
+            work.save()
 
             # 这个还得待确定，暂时先修改
             # 在进入下一个process的下一个任务之前，如果当前process的状态为tood，那么需要设置为success
@@ -145,7 +182,7 @@ class Process(BaseModel):
     def handle_execute_result(self, success=False, result=None, output=None):
         """
         当前过程设置了字段执行
-        出错/成功都需要调用这个方法，会修改自己的状态，同时会修改workflow的状态
+        出错/成功都需要调用这个方法，会修改自己的状态，同时会修改work的状态
         :param success: 是否成功执行
         :param result: 出错的信息
         :param output: 输出的结果，可作为下一步的输入
@@ -160,10 +197,12 @@ class Process(BaseModel):
         self.status = status
         self.save()
 
-        # workflow的状态，如果是出错我们就保存，是成功就交给下一步的操作来处理
+        # work的状态，如果是出错我们就保存，是成功就交给下一步的操作来处理
         if not success:
-            self.workflow.status = "error"
-            self.workflow.save()
+            work = self.work  # 先获取work对象
+            work.status = "error"
+            work.save()
+            work.send_message(category="error", content=result)
 
         # 3. 如果成功，那么就需要自动进入下一个步骤
         if success and self.auto_execute:
@@ -189,7 +228,7 @@ class Process(BaseModel):
                 # if plugin.status not in ["todo2"]:
                 #     return False, "当前插件状态不是todo不可执行"
                 # 执行插件的核心任务：非常重要哦
-                results = plugin.core_task(workflow=self.workflow, process=self, step=self.step)
+                results = plugin.core_task(work=self.work, process=self, step=self.step)
                 if len(results) == 2:
                     success, result = results
                     output = None
@@ -205,7 +244,7 @@ class Process(BaseModel):
                 else:
                     content = "{}:执行失败:{}".format(self.step.name, result)
                     category = "error"
-                WorkFlowLog.objects.create(workflow_id=self.workflow_id, category=category, content=content)
+                WorkLog.objects.create(work_id=self.work_id, category=category, content=content)
 
                 # 核心任务执行失败，应该终止和报错了
 

@@ -9,6 +9,7 @@ urlpatterns = [
     # CMDB相关的api
     path('cmdb/', include(arg=('cmdb.urls.api', 'cmdb'), namespace='cmdb')),
     # 工作流相关的api
+    path("plugin/", include(arg=("plugin.urls.api", "plugin"), namespace="plugin")),
     path("workflow/", include(arg=("workflow.urls.api", "workflow"), namespace="workflow")),
 
     # 配置相关的api

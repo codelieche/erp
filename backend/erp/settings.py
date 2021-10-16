@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     'codelieche.apps.CodeliecheConfig',
     'account.apps.AccountConfig',
     'cmdb.apps.CmdbConfig',
+    'plugin.apps.PluginConfig',
     'workflow.apps.WorkflowConfig',
     'config.apps.ConfigConfig',
     'modellog.apps.ModellogConfig',

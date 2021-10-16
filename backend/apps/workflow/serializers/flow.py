@@ -3,7 +3,7 @@ from rest_framework import serializers
 
 from workflow.models.step import Step
 from workflow.models.flow import Flow
-from workflow.models.plugin import plugins_dict
+from plugin.models import plugins_dict
 from workflow.serializers.step import StepModelSerializer
 
 
@@ -27,10 +27,11 @@ class FlowModelSerializer(serializers.ModelSerializer):
                 step_id = item.get('id')
                 if step_id and step_id > 0:
                     # 更新步骤数据
-                    step = Step.objects.filter(flow=flow, id=step_id, deleted=False)
+                    step = Step.objects.filter(flow_id=flow.id, id=step_id, deleted=False)
                     if not step:
                         # 如果插件不存在，就跳过
                         continue
+
                 # 对插件进行判断
                 if item.get('plugin') != "do_core_task_plugin":
                     auto_execute = item.get('auto_execute', False)
@@ -61,12 +62,14 @@ class FlowModelSerializer(serializers.ModelSerializer):
                 if not plugin:
                     print("插件不可设置为空")
                     continue
+
                 elif plugin not in plugins_dict:
                     print("当前系统不支持这个插件{}".format(plugin))
                     continue
+
                 if step_id and step_id > 0:
                     # 更新步骤数据
-                    step = Step.objects.filter(flow=flow, id=step_id, deleted=False)
+                    step = Step.objects.filter(flow_id=flow.id, id=step_id, deleted=False)
                     if step:
                         # plugin是不可更新的
                         # 需要重新计算一下order
@@ -83,24 +86,31 @@ class FlowModelSerializer(serializers.ModelSerializer):
 
                         steps_list.append(step.first())
                 else:
-                    # 创建新的步骤
-                    step = Step.objects.create(
-                        flow=flow, name=name, plugin=plugin,
-                        stage=stage, step=step_number, data=data,
-                        auto_execute=auto_execute, receive_input=receive_input
-                    )
-                    steps_list.append(step)
+                    # 如果传入了flow就创建新的步骤
+                    if flow:
+                        step = Step.objects.create(
+                            flow_id=flow.id, name=name, plugin=plugin,
+                            stage=stage, step=step_number, data=data,
+                            auto_execute=auto_execute, receive_input=receive_input
+                        )
+                        steps_list.append(step)
         # 返回步骤列表
         return steps_list
 
     def create(self, validated_data):
         # print(validated_data)
         # 1. 创建实例
+        # 1.1 检查传入的steps是否正确，主要是检查组合是否合理
+        steps = self.context['request'].data.get('steps')
+        self.create_or_update_steps(flow=None, steps=steps)
+
+        # 1.2 检查步骤ok，就可创建流程了
+        user = self.context["request"].user
+        validated_data['user_id'] = user.id
         validated_data.pop('steps')
         instance = super().create(validated_data=validated_data)
 
         # 2. 添加相应的步骤
-        steps = self.context['request'].data.get('steps')
         self.create_or_update_steps(flow=instance, steps=steps)
 
         # 3. 返回对象
@@ -122,10 +132,17 @@ class FlowModelSerializer(serializers.ModelSerializer):
                 if step.id not in steps_ids:
                     step.delete()
 
-
         # 3. 返回对象
         return instance
 
     class Meta:
         model = Flow
         fields = ("id", "code", "name", "user", "steps")
+
+
+class FlowSimpleModelSerializer(serializers.ModelSerializer):
+    """流程简单的数据序列化"""
+    
+    class Meta:
+        model = Flow
+        fields = ("id", "code", "name")

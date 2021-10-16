@@ -5,8 +5,8 @@
 from django.db import models
 
 from codelieche.models import BaseModel
-from workflow.models.plugin import plugins_dict
-from workflow.serializers.plugin import plugin_serializers_mapping
+from plugin.models import plugins_dict
+from plugin.serializers import plugin_serializers_mapping
 from workflow.models.flow import Flow
 
 
@@ -14,7 +14,7 @@ class Step(BaseModel):
     """
     流程的步骤
     """
-    flow = models.ForeignKey(verbose_name="流程", to=Flow, on_delete=models.CASCADE)
+    flow_id = models.IntegerField(verbose_name="流程")
     name = models.CharField(verbose_name="步骤名称", max_length=128, blank=True, null=True)
     # 步骤有个阶段和排序，由小到大的排序
     stage = models.SmallIntegerField(verbose_name="阶段", blank=True, default=1)
@@ -27,6 +27,13 @@ class Step(BaseModel):
     auto_execute = models.BooleanField(verbose_name="自动执行", blank=True, default=False)
     # 当前步骤是否可以从上一步中接收实例化插件的数据: 配合插件中配置的RECEIVE_INPUT_FIELDS使用
     receive_input = models.BooleanField(verbose_name="接收输入", blank=True, default=False)
+
+    @property
+    def flow(self):
+        if not self.flow_id:
+            raise ValueError("步骤是需要配置流程的")
+        else:
+            return self.get_relative_object_by_model(model=Flow, value=self.flow_id)
 
     @property
     def plugin_class(self):
