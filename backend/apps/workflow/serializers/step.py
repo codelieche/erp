@@ -12,5 +12,5 @@ class StepModelSerializer(serializers.ModelSerializer):
         model = Step
         fields = (
             "id", "name", "plugin", "stage", "step", "order", "data",
-            "auto_execute", "receive_input"
+            "auto", "receive_input"
         )

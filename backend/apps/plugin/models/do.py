@@ -22,13 +22,13 @@ class DoCoreTaskPlugin(Plugin):
     CAN_EXECUTE_CORE_TASK_STATUS = ["agree", "success"]
 
     # 执行任务可以是自动执行也可以是手动执行
-    auto_execute = models.BooleanField(verbose_name="自动执行", blank=True, default=False)
+    auto = models.BooleanField(verbose_name="自动执行", blank=True, default=False)
 
     def entry_task(self, work, process, step):
         # 我也是使用自己的entry_task，而不是通用的entry_task
         print("进入do_core_task流程，如果是自动执行的，那么我们就执行核心任务")
         # process.entry_next_process()
-        if self.auto_execute:
+        if self.auto:
             self.core_task(work=work, process=process, step=step)
 
     def core_task(self, work, process, step):

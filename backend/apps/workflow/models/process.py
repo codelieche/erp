@@ -6,7 +6,7 @@ Flow配置的一个Step对应一个Process，可以转交的话，就对应多�
 process的设计：
 1. entry_task: 进入这个过程
 2. core_task: 核心任务
-3. auto_execute: 是否自动执行【里面有好一些规范，插件是需要遵守的，如果不遵守那就没办法了】
+3. auto: 是否自动执行【里面有好一些规范，插件是需要遵守的，如果不遵守那就没办法了】
 4. entry_next_process: 进入下一个步骤
 5. 很多的设计都是要插件配合的，因为process一般是固定写好了 不会大动，但是plugin是会不断添加的
 """
@@ -29,7 +29,7 @@ class Process(BaseModel):
     plugin_id = models.IntegerField(verbose_name="插件实例的ID", blank=True, null=True)
     status = models.CharField(verbose_name="状态", blank=True, default="todo", max_length=20)
     # 当前步骤是否自动执行的：如果是，那么插件会在entry_task的时候自动进入core_task
-    auto_execute = models.BooleanField(verbose_name="自动执行", blank=True, default=False)
+    auto = models.BooleanField(verbose_name="自动执行", blank=True, default=False)
     # 执行时间
     time_executed = models.DateTimeField(verbose_name="执行时间", blank=True, null=True)
 
@@ -102,7 +102,7 @@ class Process(BaseModel):
         plugin = self.plugin_obj
 
         # 2. 执行插件的entry任务
-        # 当process.auto_execute，就会再entry_task中自动进入core_task, 这算是个约定，插件需要这样遵循
+        # 当process.auto，就会再entry_task中自动进入core_task, 这算是个约定，插件需要这样遵循
         results = plugin.entry_task(work=self.work, process=self, step=self.step)
 
         return results
@@ -159,7 +159,7 @@ class Process(BaseModel):
             # 3. 实例化下一个process
             process = Process.objects.create(
                 flow_id=self.flow_id, work_id=self.work_id,
-                step_id=next_step.id, plugin_id=plugin.id, auto_execute=next_step.auto_execute,
+                step_id=next_step.id, plugin_id=plugin.id, auto=next_step.auto,
             )
 
             # 把work的当前process修改一下
@@ -206,7 +206,7 @@ class Process(BaseModel):
             work.send_message(category="error", content=result)
 
         # 3. 如果成功，那么就需要自动进入下一个步骤
-        if success and self.auto_execute:
+        if success and self.auto:
             self.entry_next_process(prev_output=output)
 
     def core_task(self):
@@ -221,7 +221,7 @@ class Process(BaseModel):
 
         # 2. 执行插件的核心任务
         # 2-1：判断是否可以进入核心任务
-        if self.status in plugin.CAN_EXECUTE_CORE_TASK_STATUS or (self.status == "todo" and self.auto_execute):
+        if self.status in plugin.CAN_EXECUTE_CORE_TASK_STATUS or (self.status == "todo" and self.auto):
             if plugin.core_task_executed:
                 # print("当前插件的核心任务已经执行过了，不可执行")
                 return False, "核心任务已经执行过了，不可继续执行", None

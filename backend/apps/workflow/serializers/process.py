@@ -14,7 +14,7 @@ class ProcessModelSerializer(serializers.ModelSerializer):
         model = Process
         fields = (
             "id", "flow_id", "step_id", "work_id",
-            "status", "auto_execute", "time_executed"
+            "status", "auto", "time_executed"
         )
 
 
@@ -53,5 +53,5 @@ class ProcessInfoModelSerializer(serializers.ModelSerializer):
         model = Process
         fields = (
             "id", "flow_id", "step_id", "step", "plugin_id", "plugin",
-            "work_id", "result", "status", "auto_execute", "time_executed"
+            "work_id", "result", "status", "auto", "time_executed"
         )

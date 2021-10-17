@@ -11,7 +11,7 @@ from plugin.models.do import DoCoreTaskPlugin
 class DoCoreTaskPluginModelSerializer(serializers.ModelSerializer):
     class Meta:
         model = DoCoreTaskPlugin
-        fields = ("id", "auto_execute", "status", "core_task_executed", "time_executed")
+        fields = ("id", "auto", "status", "core_task_executed", "time_executed")
 
 
 # class DoCoreTaskPlugin(Plugin):
@@ -24,7 +24,7 @@ class DoCoreTaskPluginModelSerializer(serializers.ModelSerializer):
 #         "description": "执行核心任务的插件"
 #     }
 #     # 执行任务可以是自动执行也可以是手动执行
-#     auto_execute = models.BooleanField(verbose_name="自动执行", blank=True, default=False)
+#     auto = models.BooleanField(verbose_name="自动执行", blank=True, default=False)
 #
 #     def core_task(self, work: Work):
 #         # 获取Flow的所有步骤，由后向前执行其核心任务，每个插件有个核心任务的开关，执行完的就无需执行，未执行的就执行一下

@@ -24,7 +24,7 @@ class MySQLPlugin(Plugin):
     database = models.CharField(verbose_name="数据库", max_length=128, blank=True, default=True)
 
     # def entry_task(self, work, process, step):
-    #     if process.auto_execute:
+    #     if process.auto:
     #         self.core_task(work=work, process=process, step=step)
     #     else:
     #         print("进入Mysql流程，我们直接进入下一步")
@@ -49,9 +49,9 @@ class MySQLPlugin(Plugin):
     #         self.status = "error"
     #         self.save()
     #
-    #     # 执行完毕，如果process.auto_execute，那么我们要触发process的执行结果
+    #     # 执行完毕，如果process.auto，那么我们要触发process的执行结果
     #     # 这是一个规范：如果不遵循，那么就没法自动跳入下一个步骤
-    #     if process.auto_execute:
+    #     if process.auto:
     #         # 里面会直接进入下一步
     #         process.handle_execute_result(success, result)
     #

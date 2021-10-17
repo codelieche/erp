@@ -122,7 +122,7 @@ class workModelSerializer(serializers.ModelSerializer):
             process = Process.objects.create(
                 flow_id=instance.flow_id, work_id=instance.id, step_id=step.id,
                 plugin_id=plugin.id, status="success",
-                auto_execute=step.auto_execute,
+                auto=step.auto,
             )
             # 保存一下当前流程实例的当前步骤
             instance.current = process.id

@@ -34,8 +34,8 @@ class FlowModelSerializer(serializers.ModelSerializer):
 
                 # 对插件进行判断
                 if item.get('plugin') != "do_core_task_plugin":
-                    auto_execute = item.get('auto_execute', False)
-                    if auto_execute is True or auto_execute == 1:
+                    auto = item.get('auto', False)
+                    if auto is True or auto == 1:
                         if not need_do_core_task_plugin:
                             # 如果前面的插件需要do_core_task_plugin，那么这里依然不可设置为False
                             need_do_core_task_plugin = False
@@ -56,7 +56,7 @@ class FlowModelSerializer(serializers.ModelSerializer):
                 stage = item.get('stage', 1)
                 step_number = item.get('step', 1)
                 data = item.get('data', "{}")
-                auto_execute = item.get('auto_execute', False)
+                auto = item.get('auto', False)
                 receive_input = item.get('receive_input', False)  # 是否接受上一步的输出作为这一步插件的输入
 
                 if not plugin:
@@ -76,7 +76,7 @@ class FlowModelSerializer(serializers.ModelSerializer):
                         order = 10 ** stage + step_number
                         step.update(
                             name=name, stage=stage, step=step_number, order=order, data=data,
-                            auto_execute=auto_execute, receive_input=receive_input
+                            auto=auto, receive_input=receive_input
                         )
                         # step.name = name
                         # step.stage = stage
@@ -91,7 +91,7 @@ class FlowModelSerializer(serializers.ModelSerializer):
                         step = Step.objects.create(
                             flow_id=flow.id, name=name, plugin=plugin,
                             stage=stage, step=step_number, data=data,
-                            auto_execute=auto_execute, receive_input=receive_input
+                            auto=auto, receive_input=receive_input
                         )
                         steps_list.append(step)
         # 返回步骤列表

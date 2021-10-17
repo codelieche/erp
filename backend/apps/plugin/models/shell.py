@@ -21,7 +21,7 @@ class ShellExecutePlugin(Plugin):
     command = models.TextField(verbose_name="执行的shell命令")
 
     # def entry_task(self, work, process, step):
-    #     if process.auto_execute:
+    #     if process.auto:
     #         print("进入shell流程，我们直接执行当前这个任务：{}".format(self.command))
     #         self.core_task(work=work, process=process, step=step)
     #     else:
@@ -44,8 +44,8 @@ class ShellExecutePlugin(Plugin):
     #         self.status = "error"
     #         self.save()
     #
-    #     # 执行完毕，如果process.auto_execute，那么我们要触发process的执行结果
-    #     if process.auto_execute:
+    #     # 执行完毕，如果process.auto，那么我们要触发process的执行结果
+    #     if process.auto:
     #         # 里面会直接进入下一步
     #         process.handle_execute_result(success, result)
     #
