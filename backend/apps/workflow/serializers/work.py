@@ -107,35 +107,45 @@ class workModelSerializer(serializers.ModelSerializer):
         if not step:
             raise serializers.ValidationError("一般不会出现这个情况，flow一般都是有步骤的")
 
-        plugin_class = plugins_dict.get(step.plugin)
-        if not plugin_class:
-            raise serializers.ValidationError("一般也不会出现这情况，flow配置的插件不存在")
+        # 3-2: 实例化出所有的process
+        for step in flow.steps:
+            # 3-2-1: 获取到步骤的插件
+            plugin_class = plugins_dict.get(step.plugin)
+            if not plugin_class:
+                raise serializers.ValidationError("一般也不会出现这情况，flow配置的插件不存在")
 
-        # 3-2：获取到插件实例化所需的数据
-        success, plugin_data = Work.get_plugin_data(step=step, data=instance.data)
+            # 3-2-2：获取到插件实例化所需的数据
+            success, plugin_data = Work.get_plugin_data(step=step, data=instance.data)
 
-        # 3-3: 创建插件
-        if success and isinstance(plugin_data, dict):
-            plugin = plugin_class.objects.create(**plugin_data)
-            # print("实例化插件成功：", plugin)
-            # 3-4：实例化process, 且第一步process状态直接设置为成功
-            process = Process.objects.create(
-                flow_id=instance.flow_id, work_id=instance.id, step_id=step.id,
-                plugin_id=plugin.id, status="success",
-                auto=step.auto,
-            )
+            # 3-3: 创建Process
+            if success and isinstance(plugin_data, dict):
+                # plugin = plugin_class.objects.create(**plugin_data)
+                # print("实例化插件成功：", plugin)
+                # 3-4：实例化process, 且第一步process状态直接设置为成功
+                Process.objects.create(
+                    flow_id=instance.flow_id, work_id=instance.id, step_id=step.id,
+                    name=step.name, order=step.order, plugin=step.plugin,
+                    data=plugin_data, status="",
+                    auto=step.auto, receive_input=step.receive_input,
+                )
+
+            else:
+                raise serializers.ValidationError("一般不会出现这个错误")
+
+        # 4. 进入第1个process
+        first_process = instance.process_set.first()
+        if first_process:
             # 保存一下当前流程实例的当前步骤
-            instance.current = process.id
+            instance.current = first_process.id
             instance.save()
 
             # print("实例化第一个process成功：", process)
             # 触发进入这个流程的事件
-            process.entry_task()   # 执行进入流程相关的事件
+            first_process.entry_task()  # 执行进入流程相关的事件
             # 异步执行进入事件
             # do_process_entry_task.delay(process)
-
         else:
-            raise serializers.ValidationError("一般不会出现这个错误")
+            raise serializers.ValidationError("获取第一个process对象出错")
 
         return instance
 

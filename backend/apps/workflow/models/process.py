@@ -13,6 +13,8 @@ process的设计：
 from django.db import models
 
 from codelieche.models import BaseModel
+from plugin.models import plugins_dict
+from plugin.serializers import plugin_serializers_mapping
 from workflow.models.work import Work
 from workflow.models.step import Step
 from workflow.models.log import WorkLog
@@ -26,10 +28,17 @@ class Process(BaseModel):
     flow_id = models.IntegerField(verbose_name="流程", blank=True, null=True)
     work_id = models.IntegerField(verbose_name="流程实例")
     step_id = models.IntegerField(verbose_name="步骤")
+    name = models.CharField(verbose_name="步骤名称", max_length=128)
+    order = models.IntegerField(verbose_name="排序")  # 其实是步骤的排序
+    # 我们先创建好Process，开始是没有设置plugin插件的, 当到达这一步之后就开始实例化插件
+    # 实例化插件的时候还需要和传入的值结合一下
+    plugin = models.CharField(verbose_name="插件", max_length=128)
+    data = models.JSONField(verbose_name="插件数据")
     plugin_id = models.IntegerField(verbose_name="插件实例的ID", blank=True, null=True)
     status = models.CharField(verbose_name="状态", blank=True, default="todo", max_length=20)
     # 当前步骤是否自动执行的：如果是，那么插件会在entry_task的时候自动进入core_task
     auto = models.BooleanField(verbose_name="自动执行", blank=True, default=False)
+    receive_input = models.BooleanField(verbose_name="是否接收输入", blank=True, default=False)
     # 执行时间
     time_executed = models.DateTimeField(verbose_name="执行时间", blank=True, null=True)
 
@@ -66,10 +75,45 @@ class Process(BaseModel):
             # 有可能是还未设置结果呢
             return None
 
+    def get_or_create_plugin(self, prev_output):
+        # 如果已经有plugin_id了那么就返回插件
+        plugin_class = plugins_dict[self.plugin]
+
+        if self.plugin_id:
+            # 1. 获取到插件类对象
+            return plugin_class.objects.get(id=self.plugin_id)
+        else:
+            # 2. 创建插件
+            # 2-1: 获取到相关数据
+            plugin_serializer_class = plugin_serializers_mapping[self.plugin]
+            plugin_data = self.data
+            if not isinstance(plugin_data, dict):
+                raise ValueError("Process的数据必须是dict类型")
+            # 2-2: 判断传入的数据
+            if self.receive_input and isinstance(prev_output, dict):
+                prev_out_put_fields = {}
+                for k in plugin_class.RECEIVE_INPUT_FIELDS:
+                    if k in prev_output:
+                        prev_out_put_fields[k] = prev_output[k]
+                # 更新插件的数据
+                plugin_data.update(prev_out_put_fields)
+
+            # 2-3: 实例化插件
+            serializer = plugin_serializer_class(data=plugin_data)
+            if serializer.is_valid(raise_exception=True):
+                plugin = serializer.save()
+                # 记得保存一下插件的id
+                self.plugin_id = plugin.id
+                self.status = "todo"
+                self.save()
+                return plugin
+            else:
+                raise ValueError("{}".format(serializer.errors))
+
     @property
     def plugin_obj(self):
         # 1. 获取到当前的插件对象
-        plugin_class = self.step.plugin_class
+        plugin_class = plugins_dict[self.plugin]
         # 如果传递的plugin不存在就直接报错
         plugin = plugin_class.objects.get(id=self.plugin_id)
 
@@ -91,7 +135,7 @@ class Process(BaseModel):
             plugin_obj.save()
         return self
 
-    def entry_task(self):
+    def entry_task(self, prev_output=None):
         # 进入这个process，可能是发短信，也可能是立刻进入下一个环节
         # 其实是调用插件实例的事件
         print("进入当前过程，处理事件: Process:{}-{}".format(self.id, self.step.name))
@@ -99,7 +143,7 @@ class Process(BaseModel):
         # plugin_class = self.step.plugin_class
         # # 如果传递的plugin不存在就直接报错
         # plugin = plugin_class.objects.get(id=self.plugin_id)
-        plugin = self.plugin_obj
+        plugin = self.get_or_create_plugin(prev_output=prev_output)
 
         # 2. 执行插件的entry任务
         # 当process.auto，就会再entry_task中自动进入core_task, 这算是个约定，插件需要这样遵循
@@ -112,7 +156,7 @@ class Process(BaseModel):
     def entry_next_process(self, prev_output=None):
         # 1. 获取实例化Plugin所需的数据
         # 1-1：下一个任务
-        next_step = self.work.get_next_step(current=self.step)
+        next_process = self.work.get_next_step(current=self)
         work = self.work
 
         # 修改一下状态
@@ -120,7 +164,7 @@ class Process(BaseModel):
             work.status = "doing"
             work.save()
 
-        if not next_step:
+        if not next_process:
             print(self, "没有下一个步骤了，无需执行， 开始设置整个流程的状态为Done")
             # 到这里应该是要检查一下work的状态了，比如全部修改成done
             work.status = "done"
@@ -129,56 +173,77 @@ class Process(BaseModel):
             # 发送完成消息：发送提醒
             work.send_message(category="done")
             return
-        # 1-2：下一个任务插件的数据
-        success, plugin_data = Work.get_plugin_data(step=next_step, data=self.work.data)
 
-        # 1-3: 接收上一步的输出作为输入
-        if self.step.receive_input and isinstance(prev_output, dict):
-            # 请实现更新plugin_data
-            prev_output_fields = {}
-            for k in self.plugin_obj.RECEIVE_INPUT_FIELDS:
-                if k in prev_output:
-                    prev_output_fields[k] = prev_output[k]
-            # 对插件数据进行更新: 执行到这里才算是成功接收到上一步的output数据了
-            plugin_data.update(prev_output_fields)
+        # 1-2：实例化下一个插件的数据
+        if not isinstance(next_process, Process):
+            raise ValueError("work的下一步不是process对象")
 
-        # 2. 创建插件
-        if success and isinstance(plugin_data, dict):
-            # plugin_class = next_step.plugin_class
-            plugin_serializer_class = next_step.plugin_serializer_class
-            # plugin_serializer_class(data=plugin_class)
-            # plugin = plugin_class.objects.create(**plugin_data)
+        next_step_plugin = next_process.get_or_create_plugin(prev_output=prev_output)
 
-            serializer = plugin_serializer_class(data=plugin_data)
-            if not serializer.is_valid():
-                raise ValueError("实例化插件对象出错")
-
-            plugin = serializer.save()
-            print("实例化插件成功：", plugin)
-
-            # 3. 实例化下一个process
-            process = Process.objects.create(
-                flow_id=self.flow_id, work_id=self.work_id,
-                step_id=next_step.id, plugin_id=plugin.id, auto=next_step.auto,
-            )
-
-            # 把work的当前process修改一下
-            work.current = process.id
-            # 记得保存一下
+        if next_step_plugin:
+            work.current = next_process.id
             work.save()
 
-            # 这个还得待确定，暂时先修改
-            # 在进入下一个process的下一个任务之前，如果当前process的状态为tood，那么需要设置为success
-            if self.status == "todo":
-                self.status = "success"
-                self.save()
+        # 这个还得待确定，暂时先修改
+        # 在进入下一个process的下一个任务之前，如果当前process的状态为todo，那么需要设置为success
+        if self.status == "todo":
+            self.status = "success"
+            self.save()
 
-            # print("实例化下一个process成功：", process)
-            # 触发进入这个流程的事件
-            return process.entry_task()  # 执行进入流程相关的事件
+        # print("实例化下一个process成功：", process)
+        # 触发进入这个流程的事件
+        return next_process.entry_task()  # 执行进入流程相关的事件
 
-        else:
-            raise ValueError("一般不会出现这个错误")
+
+        # success, plugin_data = Work.get_plugin_data(step=next_step, data=self.work.data)
+        #
+        # # 1-3: 接收上一步的输出作为输入
+        # if self.step.receive_input and isinstance(prev_output, dict):
+        #     # 请实现更新plugin_data
+        #     prev_output_fields = {}
+        #     for k in self.plugin_obj.RECEIVE_INPUT_FIELDS:
+        #         if k in prev_output:
+        #             prev_output_fields[k] = prev_output[k]
+        #     # 对插件数据进行更新: 执行到这里才算是成功接收到上一步的output数据了
+        #     plugin_data.update(prev_output_fields)
+        #
+        # # 2. 创建插件
+        # if success and isinstance(plugin_data, dict):
+        #     # plugin_class = next_step.plugin_class
+        #     plugin_serializer_class = next_step.plugin_serializer_class
+        #     # plugin_serializer_class(data=plugin_class)
+        #     # plugin = plugin_class.objects.create(**plugin_data)
+        #
+        #     serializer = plugin_serializer_class(data=plugin_data)
+        #     if not serializer.is_valid():
+        #         raise ValueError("实例化插件对象出错")
+        #
+        #     plugin = serializer.save()
+        #     print("实例化插件成功：", plugin)
+        #
+        #     # 3. 实例化下一个process
+        #     process = Process.objects.create(
+        #         flow_id=self.flow_id, work_id=self.work_id,
+        #         step_id=next_step.id, plugin_id=plugin.id, auto=next_step.auto,
+        #     )
+        #
+        #     # 把work的当前process修改一下
+        #     work.current = process.id
+        #     # 记得保存一下
+        #     work.save()
+        #
+        #     # 这个还得待确定，暂时先修改
+        #     # 在进入下一个process的下一个任务之前，如果当前process的状态为tood，那么需要设置为success
+        #     if self.status == "todo":
+        #         self.status = "success"
+        #         self.save()
+        #
+        #     # print("实例化下一个process成功：", process)
+        #     # 触发进入这个流程的事件
+        #     return process.entry_task()  # 执行进入流程相关的事件
+        #
+        # else:
+        #     raise ValueError("一般不会出现这个错误")
 
     def handle_execute_result(self, success=False, result=None, output=None):
         """

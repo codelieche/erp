@@ -113,8 +113,17 @@ class Work(BaseModel):
         else:
             # 获取当前步骤的下一个，默认order是不相等的，且都是正确排好序的
             # next_step = self.flow.step_set.filter(order__gt=current.order, deleted=False).order_by("order").first()
-            next_step = Step.objects.filter(
-                flow_id=self.flow_id, order__gt=current.order, deleted=False).order_by("order").first()
+            # next_step = Step.objects.filter(
+            #     flow_id=self.flow_id, order__gt=current.order, deleted=False).order_by("order").first()
+            args = {
+                "flow_id": self.flow_id,
+                "work_id": self.id,
+                "order__gt": current.order,
+                "deleted": False,
+            }
+            next_step = self.get_relative_object_by_content_type(
+                app_label="workflow", model="process", args=args, many=True
+            ).order_by("order").first()
             return next_step
 
     @staticmethod
