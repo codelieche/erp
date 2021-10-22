@@ -13,7 +13,7 @@ from workflow.serializers.process import ProcessInfoModelSerializer
 from workflow.tasks.process import do_process_entry_task
 
 
-class workModelSerializer(serializers.ModelSerializer):
+class WorkModelSerializer(serializers.ModelSerializer):
     """
     work Model Serializer
     """
@@ -163,7 +163,7 @@ class workModelSerializer(serializers.ModelSerializer):
         )
 
 
-class workInfoModelSerializer(serializers.ModelSerializer):
+class WorkInfoModelSerializer(serializers.ModelSerializer):
 
     process_set = ProcessInfoModelSerializer(many=True, read_only=True, allow_null=True)
     current_process = ProcessInfoModelSerializer(many=False, read_only=True, allow_null=True)

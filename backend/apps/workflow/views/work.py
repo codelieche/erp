@@ -6,16 +6,16 @@ from codelieche.views.viewset import ModelViewSet
 from workflow.models.work import Work
 from workflow.models.process import Process
 from workflow.models.log import WorkLog
-from workflow.serializers.work import workModelSerializer, workInfoModelSerializer
+from workflow.serializers.work import WorkModelSerializer, WorkInfoModelSerializer
 from workflow.tasks.process import do_process_core_task
 
 
-class workApiModelViewSet(ModelViewSet):
+class WorkApiModelViewSet(ModelViewSet):
     """
     Work Flow Api View Set
     """
     queryset = Work.objects.filter(deleted=False)
-    serializer_class_set = (workModelSerializer, workInfoModelSerializer)
+    serializer_class_set = (WorkModelSerializer, WorkInfoModelSerializer)
 
     @action(methods=["POST"], detail=False, description="执行当前步骤的操作")
     def action(self, request):

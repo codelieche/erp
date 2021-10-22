@@ -50,7 +50,7 @@ class Plugin(BaseModel):
     time_updated = models.DateTimeField(verbose_name="更新时间", auto_now=True, blank=True)
     time_executed = models.DateTimeField(verbose_name="执行时间", blank=True, null=True)
 
-    def entry_task(self, work, process, step):
+    def entry_task(self, work, process, step, *args, **kwargs):
         """
         进入任务
         :param work: 工作流实例
@@ -60,10 +60,10 @@ class Plugin(BaseModel):
         """
         # 特殊情况，请自行覆盖本方法
         if process.auto:
-            return self.core_task(work=work, process=process, step=step)
+            return self.core_task(work=work, process=process, step=step, *args, **kwargs)
         else:
             # 这种情况一般是结合后续步骤的do_core_task_plugin来结合使用
-            return process.entry_next_process()
+            return process.entry_next_process(*args, **kwargs)
 
     def execute_core_task(self, work=None):
         # 执行核心任务，我们应该返回3个值：

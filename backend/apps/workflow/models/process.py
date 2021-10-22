@@ -135,25 +135,22 @@ class Process(BaseModel):
             plugin_obj.save()
         return self
 
-    def entry_task(self, prev_output=None):
+    def entry_task(self, prev_output=None, *args, **kwargs):
         # 进入这个process，可能是发短信，也可能是立刻进入下一个环节
         # 其实是调用插件实例的事件
         print("进入当前过程，处理事件: Process:{}-{}".format(self.id, self.step.name))
         # 1. 获取到当前的插件对象
-        # plugin_class = self.step.plugin_class
-        # # 如果传递的plugin不存在就直接报错
-        # plugin = plugin_class.objects.get(id=self.plugin_id)
+        # 如果传递的plugin不存在就直接报错
         plugin = self.get_or_create_plugin(prev_output=prev_output)
 
         # 2. 执行插件的entry任务
         # 当process.auto，就会再entry_task中自动进入core_task, 这算是个约定，插件需要这样遵循
-        results = plugin.entry_task(work=self.work, process=self, step=self.step)
+        results = plugin.entry_task(work=self.work, process=self, step=self.step, *args, **kwargs)
+        # 3. 有些插件是直接进入下一个任务的
 
         return results
 
-        # 3. 有些插件是直接进入下一个任务的
-
-    def entry_next_process(self, prev_output=None):
+    def entry_next_process(self, prev_output=None, *args, **kwargs):
         # 1. 获取实例化Plugin所需的数据
         # 1-1：下一个任务
         next_process = self.work.get_next_step(current=self)
@@ -191,60 +188,8 @@ class Process(BaseModel):
             self.status = "success"
             self.save()
 
-        # print("实例化下一个process成功：", process)
         # 触发进入这个流程的事件
-        return next_process.entry_task()  # 执行进入流程相关的事件
-
-
-        # success, plugin_data = Work.get_plugin_data(step=next_step, data=self.work.data)
-        #
-        # # 1-3: 接收上一步的输出作为输入
-        # if self.step.receive_input and isinstance(prev_output, dict):
-        #     # 请实现更新plugin_data
-        #     prev_output_fields = {}
-        #     for k in self.plugin_obj.RECEIVE_INPUT_FIELDS:
-        #         if k in prev_output:
-        #             prev_output_fields[k] = prev_output[k]
-        #     # 对插件数据进行更新: 执行到这里才算是成功接收到上一步的output数据了
-        #     plugin_data.update(prev_output_fields)
-        #
-        # # 2. 创建插件
-        # if success and isinstance(plugin_data, dict):
-        #     # plugin_class = next_step.plugin_class
-        #     plugin_serializer_class = next_step.plugin_serializer_class
-        #     # plugin_serializer_class(data=plugin_class)
-        #     # plugin = plugin_class.objects.create(**plugin_data)
-        #
-        #     serializer = plugin_serializer_class(data=plugin_data)
-        #     if not serializer.is_valid():
-        #         raise ValueError("实例化插件对象出错")
-        #
-        #     plugin = serializer.save()
-        #     print("实例化插件成功：", plugin)
-        #
-        #     # 3. 实例化下一个process
-        #     process = Process.objects.create(
-        #         flow_id=self.flow_id, work_id=self.work_id,
-        #         step_id=next_step.id, plugin_id=plugin.id, auto=next_step.auto,
-        #     )
-        #
-        #     # 把work的当前process修改一下
-        #     work.current = process.id
-        #     # 记得保存一下
-        #     work.save()
-        #
-        #     # 这个还得待确定，暂时先修改
-        #     # 在进入下一个process的下一个任务之前，如果当前process的状态为tood，那么需要设置为success
-        #     if self.status == "todo":
-        #         self.status = "success"
-        #         self.save()
-        #
-        #     # print("实例化下一个process成功：", process)
-        #     # 触发进入这个流程的事件
-        #     return process.entry_task()  # 执行进入流程相关的事件
-        #
-        # else:
-        #     raise ValueError("一般不会出现这个错误")
+        return next_process.entry_task(*args, **kwargs)  # 执行进入流程相关的事件
 
     def handle_execute_result(self, success=False, result=None, output=None):
         """
@@ -280,9 +225,6 @@ class Process(BaseModel):
         # 其实是调用插件实例的事件
         # print("进入当前过程，核心事件处理事件")
         # 1. 获取到当前的插件对象
-        # plugin_class = self.step.plugin_class
-        # # 如果传递的plugin不存在就直接报错
-        # plugin = plugin_class.objects.get(id=self.plugin_id)
         plugin = self.plugin_obj
 
         # 2. 执行插件的核心任务
@@ -292,7 +234,7 @@ class Process(BaseModel):
                 # print("当前插件的核心任务已经执行过了，不可执行")
                 return False, "核心任务已经执行过了，不可继续执行", None
             else:
-                # if plugin.status not in ["todo2"]:
+                # if plugin.status not in ["to-do"]:
                 #     return False, "当前插件状态不是todo不可执行"
                 # 执行插件的核心任务：非常重要哦
                 results = plugin.core_task(work=self.work, process=self, step=self.step, *args, **kwargs)
@@ -314,7 +256,6 @@ class Process(BaseModel):
                 WorkLog.objects.create(work_id=self.work_id, category=category, content=content)
 
                 # 核心任务执行失败，应该终止和报错了
-
                 # 考虑一下，这里是否需要修改process的状态
                 return success, result, output
 
