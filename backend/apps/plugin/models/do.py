@@ -31,7 +31,7 @@ class DoCoreTaskPlugin(Plugin):
         if self.auto:
             self.core_task(work=work, process=process, step=step)
 
-    def core_task(self, work, process, step):
+    def core_task(self, work, process, step, *args, **kwargs):
         # 统一在proces中就判断一下是否已经执行了，这里就无需判断了
         # if self.core_task_executed:
         #     # 这里考虑是返回True，暂时让只要重复触发核心任务就报错
@@ -83,7 +83,7 @@ class DoCoreTaskPlugin(Plugin):
                         # 设置当前插件的状态为False
                         self.status = "error"
                         # 设置执行时间
-                        now = timezone.datetime.now()
+                        now = timezone.datetime.now(tz=timezone.utc)
                         self.time_executed = now
                         self.save()
                         # 设置流程的状态为失败
@@ -95,7 +95,7 @@ class DoCoreTaskPlugin(Plugin):
         # 如果执行到这里，那么就是插件成功执行了，修改状态
         self.status = "success"
         # 设置执行时间
-        now = timezone.datetime.now()
+        now = timezone.datetime.now(tz=timezone.utc)
         self.time_executed = now
         self.save()
 

@@ -94,9 +94,9 @@ class workApiModelViewSet(ModelViewSet):
             work.save()
             # 记录日志
             if status == "cancel":
-                content = "{}取消了步骤({})".format(user.username, process.step.name)
+                content = "{}取消了步骤({})".format(user.username, process.name)
             else:
-                content = "{}拒绝了步骤({})".format(user.username, process.step.name)
+                content = "{}拒绝了步骤({})".format(user.username, process.name)
             WorkLog.objects.create(work_id=work.id, user=user, category="error", content=content)
 
             # 返回取消/拒绝成功的消息
@@ -113,11 +113,11 @@ class workApiModelViewSet(ModelViewSet):
             print("执行当前process的核心任务：", work, process)
 
             # 记录日志
-            content = "{}通过了步骤({})".format(user.username, process.step.name)
+            content = "{}通过了步骤({})".format(user.username, process.name)
             WorkLog.objects.create(work_id=work.id, user=user, category="success", content=content)
 
             # 执行过程的核心任务
-            success, result, output = process.core_task()
+            success, result, output = process.core_task(user=user)
             print("{}执行核心任务返回结果：".format(process), success, result, output)
 
             # 异步执行

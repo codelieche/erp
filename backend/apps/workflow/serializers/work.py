@@ -108,6 +108,7 @@ class workModelSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("一般不会出现这个情况，flow一般都是有步骤的")
 
         # 3-2: 实例化出所有的process
+        step_count = 0
         for step in flow.steps:
             # 3-2-1: 获取到步骤的插件
             plugin_class = plugins_dict.get(step.plugin)
@@ -128,7 +129,8 @@ class workModelSerializer(serializers.ModelSerializer):
                     data=plugin_data, status="",
                     auto=step.auto, receive_input=step.receive_input,
                 )
-
+                # 记录总共步数
+                step_count += 1
             else:
                 raise serializers.ValidationError("一般不会出现这个错误")
 
@@ -137,6 +139,8 @@ class workModelSerializer(serializers.ModelSerializer):
         if first_process:
             # 保存一下当前流程实例的当前步骤
             instance.current = first_process.id
+            instance.step_count = step_count
+            instance.step_done = 1  # 设置完成步数为1
             instance.save()
 
             # print("实例化第一个process成功：", process)
@@ -164,32 +168,12 @@ class workInfoModelSerializer(serializers.ModelSerializer):
     process_set = ProcessInfoModelSerializer(many=True, read_only=True, allow_null=True)
     current_process = ProcessInfoModelSerializer(many=False, read_only=True, allow_null=True)
 
-    # 步骤数据
-    steps = serializers.SerializerMethodField()
-
-    def get_steps(self, obj):
-        steps = []
-        flow = obj.flow
-        if flow:
-            step_objs = flow.steps
-            for step in step_objs:
-                success, plugin_data = obj.get_plugin_data(step, obj.data)
-                step_item = {
-                    "id": step.id,
-                    "name": step.name,
-                    "plugin": step.plugin,
-                    "data": plugin_data if success else {}
-                }
-                steps.append(step_item)
-
-        return steps
-
     class Meta:
         model = Work
         fields = (
             "id", "flow_id", "title",
             "status", "status_code",
-            "user_id", "current", "steps",
-            "data", 'process_set', 'current_process',
+            "user_id", "current", "step_count", "step_done",
+            'process_set', 'current_process', "data",
             "time_added", "time_finished",
         )

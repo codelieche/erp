@@ -50,7 +50,7 @@ class ApprovePlugin(Plugin):
         return True, "执行结果", None
 
     # 状态：cancel, error, success
-    def core_task(self, work, process, step):
+    def core_task(self, work, process, step, *args, **kwargs):
         if self.core_task_executed:
             # 这里考虑是返回True，暂时让只要重复触发核心任务就报错
             return False, "核心任务已经执行过了，不可继续执行", None
@@ -61,12 +61,17 @@ class ApprovePlugin(Plugin):
             else:
                 # 把状态设置为doing，这样可防止重复执行
                 self.status = "doing"
-                self.save(update_fields=["status"])
+                # 保存用户
+                user = kwargs.get('user')
+                if user and hasattr(user, "username"):
+                    self.user = user.username
+
+                self.save(update_fields=["status", "user"])
                 # 模拟执行核心任务，如果任务出错就把整个流程设置为错误，成功的话就把插件的状态改成agree/success
                 success, result, output = self.execute_core_task()
                 self.core_task_executed = True
                 # 设置执行时间
-                now = timezone.datetime.now()
+                now = timezone.datetime.now(tz=timezone.utc)
                 self.time_executed = now
                 process.time_executed = now
                 process.save()

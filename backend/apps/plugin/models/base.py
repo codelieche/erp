@@ -71,7 +71,7 @@ class Plugin(BaseModel):
         print("我是执行核心任务的函数，所有核心的操作可以放整个地方")
         raise NotImplementedError("请实现Execute Core Task方法")
 
-    def core_task(self, work, process, step):
+    def core_task(self, work, process, step, *args, **kwargs):
         # 可以考虑把这个设置为通用的方法
         results = self.execute_core_task(work=work)
         if len(results) == 3:
@@ -83,7 +83,7 @@ class Plugin(BaseModel):
             raise ValueError("插件{}返回的结果格式不正确".format(self))
         # 设置以及执行了
         self.core_task_executed = True
-        now = timezone.datetime.now()
+        now = timezone.datetime.now(tz=timezone.utc)
         self.time_executed = now  # 设置执行时间
         process.time_executed = now
         process.save()

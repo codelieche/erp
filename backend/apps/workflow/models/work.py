@@ -56,6 +56,8 @@ class Work(BaseModel):
     current = models.IntegerField(verbose_name="当前步骤", blank=True, null=True)
     # 当前流程的数据，后续插件都会来这里取数据：step_id: {}  集合 step.data 组合实例化Plugin
     data = models.JSONField(verbose_name="流程数据", blank=True, null=True)
+    step_count = models.SmallIntegerField(verbose_name="总共步数", blank=True, default=0)
+    step_done = models.SmallIntegerField(verbose_name="完成步数", blank=True, default=0)
     # 结束时间
     time_finished = models.DateTimeField(verbose_name="完成时间", blank=True, null=True)
 
@@ -251,7 +253,7 @@ class Work(BaseModel):
 
         # 如果状态是：cancel、delete、done就需要设置一下结束时间
         if self.status in ["error", "cancel", "delete", "done"]:
-            self.time_finished = timezone.datetime.now()
+            self.time_finished = timezone.datetime.now(tz=timezone.utc)
             # 设置完成
             # if self.status == "done":
             #     content = "流程完成"

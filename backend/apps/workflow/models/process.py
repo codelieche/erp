@@ -182,6 +182,7 @@ class Process(BaseModel):
 
         if next_step_plugin:
             work.current = next_process.id
+            work.step_done += work.step_done  # 已经完成的步数需要+1
             work.save()
 
         # 这个还得待确定，暂时先修改
@@ -274,7 +275,7 @@ class Process(BaseModel):
         if success and self.auto:
             self.entry_next_process(prev_output=output)
 
-    def core_task(self):
+    def core_task(self, *args, **kwargs):
         # 进入这个process的核心任务，可能是发短信，也可能是直接通过，进入下一个环节
         # 其实是调用插件实例的事件
         # print("进入当前过程，核心事件处理事件")
@@ -294,7 +295,7 @@ class Process(BaseModel):
                 # if plugin.status not in ["todo2"]:
                 #     return False, "当前插件状态不是todo不可执行"
                 # 执行插件的核心任务：非常重要哦
-                results = plugin.core_task(work=self.work, process=self, step=self.step)
+                results = plugin.core_task(work=self.work, process=self, step=self.step, *args, **kwargs)
                 if len(results) == 2:
                     success, result = results
                     output = None
